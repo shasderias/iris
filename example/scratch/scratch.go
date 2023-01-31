@@ -842,41 +842,34 @@ func Verse3(ctx context.Context) {
 }
 
 func Verse4(ctx context.Context) {
+	clockFadeInOpts := opt.Combine(
+		evt.OBeatDistWave(6),
+		fx.ExtendTransit,
+		fx.OBrightness(0, 1.0, 1.8, 0.7, ease.InOutCirc),
+	)
 	stdColor(ctx,
 		beat.Seq(198),
 		beat.RngStep(0, 8, 20),
-		thesecond.TopLasersLeftTop,
-		evt.OBeatDistWave(6),
-		evt.Blue,
-		fx.ExtendTransit,
-		fx.OBrightness(0, 1.0, 1.8, 0.7, ease.InOutCirc),
+		thesecond.TopLasersLeftTop, evt.Blue,
+		clockFadeInOpts,
 	)
 	stdColor(ctx,
 		beat.Seq(206),
 		beat.RngStep(0, 8, 20),
-		thesecond.TopLasersLeftBottom,
-		evt.OBeatDistWave(6),
-		evt.Blue,
-		fx.ExtendTransit,
-		fx.OBrightness(0, 1.0, 1.8, 0.7, ease.InOutCirc),
+		thesecond.TopLasersLeftBottom, evt.Blue,
+		clockFadeInOpts,
 	)
 	stdColor(ctx,
 		beat.Seq(214),
 		beat.RngStep(0, 8, 20),
-		thesecond.BottomLasersLeftTop,
-		evt.OBeatDistWave(6),
-		evt.White,
-		fx.ExtendTransit,
-		fx.OBrightness(0, 1.0, 1.8, 0.7, ease.InOutCirc),
+		thesecond.BottomLasersLeftTop, evt.White,
+		clockFadeInOpts,
 	)
 	stdColor(ctx,
 		beat.Seq(222),
 		beat.RngStep(0, 8, 20),
-		thesecond.BottomLasersLeftBottom,
-		evt.OBeatDistWave(6),
-		evt.White,
-		fx.ExtendTransit,
-		fx.OBrightness(0, 1.0, 1.8, 0.7, ease.InOutCirc),
+		thesecond.BottomLasersLeftBottom, evt.White,
+		clockFadeInOpts,
 	)
 	clock(ctx, 198, 2, 1, 90, 260, -19, evt.CW,
 		thesecond.TopLasersLeftTop)
