@@ -101,7 +101,7 @@ func IfSeqLast[T any](last, notLast T) FuncContextOpt[T] {
 	}
 }
 
-func For[T any](options ...any) []T {
+func Of[T any](options ...any) []T {
 	ret := []T{}
 	for _, opt := range options {
 		if o, ok := opt.(T); ok {
@@ -119,7 +119,7 @@ func Combine(options ...any) Combined {
 
 func (c Combined) ApplyBasicEvent(e *evt.BasicEvent) { panic("upgrade me") }
 func (c Combined) ApplyBasicEventContext(ctx context.Context, e *evt.BasicEvent) {
-	for _, opt := range For[evt.BasicEventOption](c) {
+	for _, opt := range Of[evt.BasicEventOption](c...) {
 		if o, ok := opt.(evt.BasicEventContextOption); ok {
 			o.ApplyBasicEventContext(ctx, e)
 		} else {
@@ -130,7 +130,7 @@ func (c Combined) ApplyBasicEventContext(ctx context.Context, e *evt.BasicEvent)
 
 func (c Combined) ApplyColorEventGroup(e *evt.ColorEventGroup) { panic("upgrade me") }
 func (c Combined) ApplyColorEventGroupContext(ctx context.Context, e *evt.ColorEventGroup) {
-	for _, opt := range For[evt.ColorEventGroupOption](c) {
+	for _, opt := range Of[evt.ColorEventGroupOption](c...) {
 		if o, ok := opt.(evt.ColorEventGroupContextOption); ok {
 			o.ApplyColorEventGroupContext(ctx, e)
 		} else {
@@ -141,7 +141,7 @@ func (c Combined) ApplyColorEventGroupContext(ctx context.Context, e *evt.ColorE
 
 func (c Combined) ApplyColorEventBox(e *evt.ColorEventBox) { panic("upgrade me") }
 func (c Combined) ApplyColorEventBoxContext(ctx context.Context, e *evt.ColorEventBox) {
-	for _, opt := range For[evt.ColorEventBoxOption](c) {
+	for _, opt := range Of[evt.ColorEventBoxOption](c...) {
 		if o, ok := opt.(evt.ColorEventBoxContextOption); ok {
 			o.ApplyColorEventBoxContext(ctx, e)
 		} else {
@@ -152,7 +152,7 @@ func (c Combined) ApplyColorEventBoxContext(ctx context.Context, e *evt.ColorEve
 
 func (c Combined) ApplyColorEvent(e *evt.ColorEvent) { panic("upgrade me") }
 func (c Combined) ApplyColorEventContext(ctx context.Context, e *evt.ColorEvent) {
-	for _, opt := range For[evt.ColorEventOption](c) {
+	for _, opt := range Of[evt.ColorEventOption](c...) {
 		if o, ok := opt.(evt.ColorEventContextOption); ok {
 			o.ApplyColorEventContext(ctx, e)
 		} else {
@@ -163,7 +163,7 @@ func (c Combined) ApplyColorEventContext(ctx context.Context, e *evt.ColorEvent)
 
 func (c Combined) ApplyRotationEventGroup(e *evt.RotationEventGroup) { panic("upgrade me") }
 func (c Combined) ApplyRotationEventGroupContext(ctx context.Context, e *evt.RotationEventGroup) {
-	for _, opt := range For[evt.RotationEventGroupOption](c) {
+	for _, opt := range Of[evt.RotationEventGroupOption](c...) {
 		if o, ok := opt.(evt.RotationEventGroupContextOption); ok {
 			o.ApplyRotationEventGroupContext(ctx, e)
 		} else {
@@ -174,7 +174,7 @@ func (c Combined) ApplyRotationEventGroupContext(ctx context.Context, e *evt.Rot
 
 func (c Combined) ApplyRotationEventBox(e *evt.RotationEventBox) { panic("upgrade me") }
 func (c Combined) ApplyRotationEventBoxContext(ctx context.Context, e *evt.RotationEventBox) {
-	for _, opt := range For[evt.RotationEventBoxOption](c) {
+	for _, opt := range Of[evt.RotationEventBoxOption](c...) {
 		if o, ok := opt.(evt.RotationEventBoxContextOption); ok {
 			o.ApplyRotationEventBoxContext(ctx, e)
 		} else {
@@ -185,19 +185,11 @@ func (c Combined) ApplyRotationEventBoxContext(ctx context.Context, e *evt.Rotat
 
 func (c Combined) ApplyRotationEvent(e *evt.RotationEvent) { panic("upgrade me") }
 func (c Combined) ApplyRotationEventContext(ctx context.Context, e *evt.RotationEvent) {
-	for _, opt := range For[evt.RotationEventOption](c) {
+	for _, opt := range Of[evt.RotationEventOption](c...) {
 		if o, ok := opt.(evt.RotationEventContextOption); ok {
 			o.ApplyRotationEventContext(ctx, e)
 		} else {
 			opt.ApplyRotationEvent(e)
 		}
 	}
-}
-
-func Wrap[T any](fn func(context.Context) T) FuncContextOpt[T] {
-	return fn
-}
-
-func InjectT() {
-
 }

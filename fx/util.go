@@ -59,11 +59,11 @@ func NewCurve(values ...float64) Curve {
 
 func RotReset(ctx context.Context, b float64, options ...any) {
 	ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
-		grp := evt.RotationGroup(ctx, opt.For[evt.RotationEventGroupOption](options...)...)
-		box := grp.AddBox(ctx, opt.For[evt.RotationEventBoxOption](options...)...)
+		grp := evt.RotationGroup(ctx, opt.Of[evt.RotationEventGroupOption](options...)...)
+		box := grp.AddBox(ctx, opt.Of[evt.RotationEventBoxOption](options...)...)
 
 		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
-			box.AddEvent(ctx, opt.For[evt.RotationEventOption](options...)...)
+			box.AddEvent(ctx, opt.Of[evt.RotationEventOption](options...)...)
 		})
 	})
 }

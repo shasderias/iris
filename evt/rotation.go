@@ -18,7 +18,7 @@ type RotationEventGroupContextOption interface {
 }
 
 func RotationGroup(ctx context.Context, options ...RotationEventGroupOption) *RotationEventGroup {
-	g := &RotationEventGroup{Beat: ctx.B()}
+	g := &RotationEventGroup{Beat: ctx.BOffset()}
 
 	ApplyOptions(ctx, g, getOptions(ctx, options)...)
 

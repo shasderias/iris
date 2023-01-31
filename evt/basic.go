@@ -20,7 +20,7 @@ type BasicEventContextOption interface {
 
 func Basic(ctx context.Context, options ...BasicEventOption) *BasicEvent {
 	be := &BasicEvent{
-		Beat:       ctx.B(),
+		Beat:       ctx.BOffset(),
 		Type:       0,
 		Value:      0,
 		FloatValue: 0,

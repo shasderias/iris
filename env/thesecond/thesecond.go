@@ -37,4 +37,5 @@ var (
 	Runway                  = evt.OColorEventGroup(2, 3)
 	SpotlightLeft           = evt.OEventGroup(4)
 	SpotlightRight          = evt.OEventGroup(5)
+	Spotlight               = evt.OEventGroup(4, 5)
 )

@@ -1,6 +1,8 @@
 package evt
 
 import (
+	"math/rand"
+
 	"github.com/shasderias/iris/beatsaber"
 )
 
@@ -73,6 +75,8 @@ const (
 	FilterOrderRandomStartingIndex FilterOrder = 3
 )
 
+const SeedRand = -1
+
 func OOrder(order FilterOrder, seed int) IndexFilterOption {
 	return IndexFilterOption(indexFilterFuncOption(func(f *IndexFilter) {
 		f.Order = order
@@ -106,6 +110,9 @@ func (f IndexFilter) IndexFilterV300() beatsaber.IndexFilterV300 {
 }
 
 func (f IndexFilter) IndexFilterV320() beatsaber.IndexFilterV320 {
+	if f.Seed == SeedRand {
+		f.Seed = rand.Intn(100000)
+	}
 	return beatsaber.IndexFilterV320{
 		FilterType:   int(f.IndexFilterType),
 		ParamP:       f.ParamP,
