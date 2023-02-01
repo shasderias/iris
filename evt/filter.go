@@ -51,11 +51,11 @@ func OSectionFilter(splitCount, targetSection int, options ...IndexFilterOption)
 	return f
 }
 
-func OStepAndOffsetFilter(step, offset int, options ...IndexFilterOption) IndexFilter {
+func OStepAndOffsetFilter(offset, step int, options ...IndexFilterOption) IndexFilter {
 	f := IndexFilter{
 		IndexFilterType: IndexFilterTypeStepAndOffset,
-		ParamP:          step,
-		ParamT:          offset,
+		ParamP:          offset,
+		ParamT:          step,
 	}
 	for _, opt := range options {
 		opt.ApplyIndexFilter(&f)

@@ -1,6 +1,8 @@
 package fx
 
 import (
+	"math"
+
 	"github.com/shasderias/iris/beat"
 	"github.com/shasderias/iris/context"
 	"github.com/shasderias/iris/ease"
@@ -113,7 +115,7 @@ func (o OptRotation) ApplyRotationEventContext(ctx context.Context, e *evt.Rotat
 
 	t := scale.ToUnitClamp(o.st, o.et)(ctx.T())
 
-	e.Rotation = scale.FromUnitClamp(o.sr, o.er)(o.easing.Func(t))
+	e.Rotation = math.Mod(scale.FromUnitClamp(o.sr, o.er)(o.easing.Func(t)), 360)
 }
 
 func ORotation(st, et, sr, er float64, easing ease.Ing) evt.RotationEventOption {

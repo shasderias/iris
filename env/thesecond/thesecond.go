@@ -12,6 +12,7 @@ var (
 )
 
 var (
+	Lasers                  = evt.OEventGroup(6, 7, 8, 9, 10, 11, 12, 13)
 	TopLasersLeftBottom     = evt.OEventGroup(6)
 	TopLasersRightBottom    = evt.OEventGroup(7)
 	TopLasersLeftTop        = evt.OEventGroup(8)

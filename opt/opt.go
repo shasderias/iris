@@ -4,6 +4,7 @@ import (
 	"github.com/shasderias/iris/context"
 	"github.com/shasderias/iris/evt"
 	"github.com/shasderias/iris/internal/calc"
+	"github.com/shasderias/iris/scale"
 )
 
 type FuncContextOpt[T any] func(context.Context) T
@@ -62,6 +63,13 @@ func SeqOrdinal[T any](options ...T) FuncContextOpt[T] {
 func Ordinal[T any](options ...T) FuncContextOpt[T] {
 	return func(ctx context.Context) T {
 		return calc.IdxWrap(options, ctx.Ordinal())
+	}
+}
+
+func T[T any](options ...T) FuncContextOpt[T] {
+	scaler := scale.FromUnitClamp(0, float64(len(options)-1))
+	return func(ctx context.Context) T {
+		return options[int(scaler(ctx.T()))]
 	}
 }
 
