@@ -548,90 +548,18 @@ func Chorus1(ctx context.Context) {
 	incantation2(ctx, 188, 0, 0.5, 2.4, 1, 180, 270, 0.4, 90,
 		thesecond.BottomLasersTop, opt.T(evt.White, evt.Red))
 
-	//cRng := beat.RngStep(0, 1.2, 2)
-	//
-	//incantation(ctx,
-	//	beat.Seq(182),
-	//	cRng,
-	//	beat.RngStep(0, 6.5, 30),
-	//	opt.Ordinal(evt.Red, evt.White),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.TopLasersLeftTop,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
-	//	fx.ORotation(0, 1, 0, 31, ease.OutCirc),
-	//)
-	//incantation(ctx,
-	//	beat.Seq(183),
-	//	cRng,
-	//	beat.RngStep(0, 5.5, 30),
-	//	opt.Ordinal(evt.Red, evt.Blue),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.TopLasersRightTop,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
-	//	fx.ORotation(0, 1, 0, 31, ease.OutCirc),
-	//)
-	//incantation(ctx,
-	//	beat.Seq(184),
-	//	cRng,
-	//	beat.RngStep(0, 4.5, 30),
-	//	opt.Ordinal(evt.Red, evt.White),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.TopLasersLeftBottom,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
-	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	//)
-	//incantation(ctx,
-	//	beat.Seq(185),
-	//	cRng,
-	//	beat.RngStep(0, 3.5, 30),
-	//	opt.Ordinal(evt.Blue, evt.Red),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.TopLasersRightBottom,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
-	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	//)
-	//incantation(ctx,
-	//	beat.Seq(186),
-	//	cRng,
-	//	beat.RngStep(0, 2.5, 30),
-	//	opt.Ordinal(evt.Red, evt.White),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.BottomLasersLeftBottom,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
-	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	//)
-	//incantation(ctx,
-	//	beat.Seq(187),
-	//	cRng,
-	//	beat.RngStep(0, 1.5, 30),
-	//	opt.Ordinal(evt.Red, evt.Blue),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.BottomLasersRightBottom,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
-	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	//)
-	//incantation(ctx,
-	//	beat.Seq(188),
-	//	cRng,
-	//	beat.RngStep(0, 0.5, 30),
-	//	opt.Ordinal(evt.White, evt.Red),
-	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-	//	thesecond.BottomLasersTop,
-	//	opt.RotationBoxOnly(evt.OBeatDistWave(0.4), evt.ODistWave(36)),
-	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	//)
 	fx.RotHold(ctx, 189-0.1, thesecond.Lasers)
 
 	ctx.WSeq(beat.Seq(189), func(ctx context.Context) {
-		_, cb := evt.ColorGroupWithBox(ctx, thesecond.TopLasers, thesecond.BottomLasers)
-		_, rcb := evt.ColorGroupWithBox(ctx, thesecond.SmallRing, evt.OBeatDistWave(0.6))
+		_, lasersCb := evt.ColorGroupWithBox(ctx, thesecond.Lasers)
+		_, ringCb := evt.ColorGroupWithBox(ctx, thesecond.SmallRing, evt.OBeatDistWave(0.6))
 		ctx.WRng(beat.RngStep(0, 0.4, 2), func(ctx context.Context) {
-			cb.AddEvent(ctx,
+			lasersCb.AddEvent(ctx,
 				opt.Ordinal(evt.Red, evt.White),
 				opt.Ordinal(evt.OBrightness(3.6), evt.OBrightness(0)),
 				fx.InstantTransit,
 			)
-			rcb.AddEvent(ctx,
+			ringCb.AddEvent(ctx,
 				opt.Ordinal(evt.Red, evt.White),
 				opt.Ordinal(evt.OBrightness(3.6), evt.OBrightness(0)),
 				fx.InstantTransit,
@@ -655,11 +583,10 @@ func Verse2(ctx context.Context) {
 	resetFalse := opt.Set("reset", false)
 
 	ctx.WSeq(beat.Seq(198, 206, 214, 222), func(ctx context.Context) {
-		light := opt.SeqOrdinal(thesecond.TopLasersLeftTop, thesecond.TopLasersRightTop, thesecond.BottomLasersLeftTop, thesecond.BottomLasersRightTop)(ctx)
-		color := opt.SeqOrdinal(evt.Blue, evt.Blue, evt.White, evt.White)(ctx)
-		stdColor(ctx, beat.Seq(0),
+		stdColor(ctx, beat.Seq0,
 			beat.RngStep(0, 8, 20),
-			light, color,
+			opt.SeqOrdinal(thesecond.TopLasersLeftTop, thesecond.TopLasersRightTop, thesecond.BottomLasersLeftTop, thesecond.BottomLasersRightTop),
+			opt.SeqOrdinal(evt.Blue, evt.White, evt.Blue, evt.White),
 			evt.OBeatDistWave(6),
 			fx.ExtendTransit,
 			fx.OBrightness(0, 1.0, 1.8, 0.7, ease.InOutCirc),
