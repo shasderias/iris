@@ -11,6 +11,8 @@ type Sequence struct {
 	GhostBeat float64
 }
 
+var Seq0 = Seq(0)
+
 func Seq(b ...float64) Sequence {
 	switch len(b) {
 	case 0:
@@ -80,6 +82,10 @@ func (s *SeqIter) SeqLast() bool           { return s.ordinal == s.SeqLen()-1 }
 type Range struct {
 	start, end float64
 	step       float64
+}
+
+func Rng1(b float64) Range {
+	return RngStep(b, b, 1)
 }
 
 func RngStep(start, end float64, steps float64) Range {

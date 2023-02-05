@@ -9,22 +9,7 @@ import (
 	"github.com/shasderias/iris/evt"
 	"github.com/shasderias/iris/fx"
 	"github.com/shasderias/iris/opt"
-	"github.com/shasderias/iris/scale"
 )
-
-func ifFirst[T any](ctx context.Context, t T, f T) T {
-	if ctx.First() {
-		return t
-	}
-	return f
-}
-
-func beatSeq[T any](ctx context.Context, items ...T) T {
-	return items[ctx.SeqOrdinal()%len(items)]
-}
-
-var extendTransit = opt.IfFirst(evt.Extend, evt.Transition)
-var instantTransit = opt.IfFirst(evt.Instant, evt.Transition)
 
 func main() {
 	const mapPath = `D:\Beat Saber Data\CustomWIPLevels\Otona No Okite`
@@ -40,6 +25,7 @@ func main() {
 
 	ctx := context.NewBase()
 
+	Reset(ctx)
 	Intro(ctx)
 	Verse1(ctx)
 	Build1(ctx)
@@ -48,6 +34,11 @@ func main() {
 	Build2(ctx)
 	Chorus2(ctx)
 	Bridge1(ctx)
+	Bridge2(ctx)
+	SilentBridge(ctx)
+	Chorus3(ctx)
+	Chorus4(ctx)
+	Outro(ctx)
 
 	diff.SetEvents(*ctx.Events())
 
@@ -56,68 +47,48 @@ func main() {
 	}
 }
 
+func Reset(ctx context.Context) {
+	ctx.WSeq(beat.Seq(0), func(ctx context.Context) {
+		evt.Basic(ctx, thesecond.RingZoom, evt.OValue(9))
+		_, rb := evt.RotationGroupWithBox(ctx,
+			thesecond.SmallRing, thesecond.BigRing,
+			thesecond.Lasers,
+			thesecond.Spotlight,
+		)
+		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
+			rb.AddEvent(ctx, evt.ORotation(0))
+		})
+	})
+}
+
 func Intro(ctx context.Context) {
 	spotlightGhost(ctx,
 		beat.Seq(6, 14, 22, 26, 30),
-		beat.RngInterval(0, 1, 10),
-		beat.RngStep(0, 0.5, 4),
+		beat.RngStep(0, 1.2, 12),
+		beat.RngStep(0, 1.2, 12),
 		10, -10, -13, -12,
-		thesecond.SpotlightLeft, thesecond.SpotlightRight,
-		fx.OBrightness(0.0, 0.4, 0, 1.6, ease.InOutCirc),
-		fx.OBrightness(0.4, 1.0, 1.6, 0, ease.InOutCirc),
+		thesecond.Spotlight,
+		darkPeak(0, 0.4, 1.2, ease.OutCirc, ease.InCirc),
 		opt.SeqOrdinal(evt.Red, evt.Blue),
-		opt.ColorBoxOnly(evt.OBeatDistWave(1.45)),
-		opt.RotationBoxOnly(evt.OBeatDistWave(1.2)),
+		opt.ColorBoxOnly(evt.OBeatDistWave(2)),
+		opt.RotationBoxOnly(evt.OBeatDistWave(2)),
 	)
-	//ctx.WSeq(beat.Seq(6, 14, 22, 26, 30), func(ctx context.Context) {
-	//	var (
-	//		spotGroup = evt.ColorGroup(ctx,
-	//			thesecond.SpotlightLeft, thesecond.SpotlightRight)
-	//		spotBox        = spotGroup.AddBox(ctx, evt.OBeatDistWave(1.75))
-	//		spotBrightness = fx.NewCurve(0, 0.2, 0.8, 2.4, 2.0, 1.6, 1.2, 0.4, 0)
-	//		spotColor      = opt.SeqOrdinal(evt.Red, evt.Blue)(ctx)
-	//	)
-	//
-	//	ctx.WRng(beat.RngInterval(0, 1, 10), func(ctx context.Context) {
-	//		spotBox.AddEvent(ctx, spotColor, evt.OBrightness(spotBrightness.Lerp(ctx.T())), extendTransit(ctx))
-	//	})
-	//
-	//	spotRotReset := evt.RotationGroup(ctx, thesecond.SpotlightLeft, thesecond.SpotlightRight)
-	//	spotRotReset.Beat -= 0.1
-	//
-	//	spotRotResetBox := spotRotReset.AddBox(ctx)
-	//
-	//	spotRot := evt.RotationGroup(ctx, thesecond.SpotlightLeft, thesecond.SpotlightRight)
-	//	spotRotBox := spotRot.AddBox(ctx, evt.OBeatDistWave(1.2), evt.ODistWave(-12-float64(ctx.Ordinal())*13))
-	//
-	//	ctx.WRng(beat.RngStep(0, 0.5, 4), func(ctx context.Context) {
-	//		if ctx.First() {
-	//			spotRotResetBox.AddEvent(ctx, evt.ORotation(10), evt.EasingNone, evt.RotationTransitionTypeTransition)
-	//		}
-	//		spotRotBox.AddEvent(ctx, evt.ORotate(10, -10, evt.RotationDirectionCounterClockwise))
-	//	})
-	//})
 
-	ctx.WSeq(beat.Seq(30.6), func(ctx context.Context) {
-		var (
-			runwayGroup = evt.ColorGroup(ctx, thesecond.RunwayLeft, thesecond.RunwayRight)
-			runwayBox   = runwayGroup.AddBox(ctx,
-				evt.OSectionFilter(0, 0, evt.OReverse(true)),
-				evt.OBeatDistWave(1.5))
-			runwayBrightness = fx.NewCurve(0, 0.6, 0)
-			runwayColor      = opt.Ordinal(evt.Blue, evt.White)
-		)
+	stdColor(ctx, beat.Seq(30.6), beat.RngStep(0, 1.6, 3),
+		thesecond.Runway,
+		evt.OSectionFilter(0, 0, evt.OReverse(true)),
+		evt.OBeatDistWave(1.5),
+		opt.Ordinal(evt.OBrightness(0), evt.OBrightness(0.6), evt.OBrightness(0)),
+		opt.Ordinal(evt.Blue, evt.White),
+		fx.ExtendTransit,
+	)
 
-		ctx.WRng(beat.RngStep(0, 1.6, 3), func(ctx context.Context) {
-			runwayBox.AddEvent(ctx, runwayColor(ctx), evt.OBrightness(runwayBrightness.Lerp(ease.InOutQuad.Func(ctx.T()))), extendTransit(ctx))
-		})
-	})
 	spotlightGhost(ctx,
 		beat.Seq(38, 46, 54, 62),
 		beat.RngStep(0, 1, 3),
-		beat.RngStep(0, 2.0, 2),
+		beat.RngStep(0, 1.8, 2),
 		22, -20, -80, -90,
-		thesecond.SpotlightLeft, thesecond.SpotlightRight,
+		thesecond.Spotlight,
 		fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
 		fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
 		opt.SeqOrdinal(
@@ -129,70 +100,26 @@ func Intro(ctx context.Context) {
 		opt.ColorBoxOnly(evt.OBeatDistWave(2.1)),
 		opt.RotationBoxOnly(evt.OBeatDistWave(1.2)),
 	)
-	//ctx.WSeq(beat.Seq(38, 46, 54, 62), func(ctx context.Context) {
-	//	var (
-	//		spotGroup = evt.ColorGroup(ctx,
-	//			thesecond.SpotlightLeft, thesecond.SpotlightRight)
-	//		spotBox        = spotGroup.AddBox(ctx, evt.OBeatDistWave(2.2))
-	//		spotBrightness = fx.NewCurve(0, 2.4, 0)
-	//		spotColor      = opt.SeqOrdinal(
-	//			[]evt.ColorEventColor{evt.Red, evt.Blue, evt.Red},
-	//			[]evt.ColorEventColor{evt.Blue, evt.Blue, evt.White},
-	//			[]evt.ColorEventColor{evt.Red, evt.Blue, evt.White},
-	//			[]evt.ColorEventColor{evt.White, evt.Red, evt.Blue},
-	//		)(ctx)
-	//	)
-	//	ctx.WRng(beat.RngStep(0, 1, 3), func(ctx context.Context) {
-	//		spotBox.AddEvent(ctx, spotColor[ctx.Ordinal()], evt.OBrightness(spotBrightness.Lerp(ctx.T())), extendTransit(ctx))
-	//	})
-	//
-	//	spotRotReset := evt.RotationGroup(ctx, thesecond.SpotlightLeft, thesecond.SpotlightRight)
-	//	spotRotReset.Beat -= 0.1
-	//
-	//	spotRotResetBox := spotRotReset.AddBox(ctx)
-	//
-	//	spotRot := evt.RotationGroup(ctx, thesecond.SpotlightLeft, thesecond.SpotlightRight)
-	//	spotRotBox := spotRot.AddBox(ctx, evt.OBeatDistWave(1.2), evt.ODistWave(-90-float64(ctx.Ordinal())*80))
-	//
-	//	ctx.WRng(beat.RngStep(0, 2.0, 2), func(ctx context.Context) {
-	//		if ctx.First() {
-	//			spotRotResetBox.AddEvent(ctx, evt.ORotation(20), evt.EasingNone, evt.RotationTransitionTypeTransition)
-	//			spotRotBox.AddEvent(ctx, evt.ORotate(20, -20, evt.RotationDirectionCounterClockwise), evt.OLoop(0))
-	//		} else {
-	//			spotRotBox.AddEvent(ctx, evt.ORotate(20, -20, evt.RotationDirectionCounterClockwise), evt.OLoop(0))
-	//		}
-	//	})
-	//})
 
-	ctx.WSeq(beat.Seq(64), func(ctx context.Context) {
-		var (
-			spotGroup = evt.ColorGroup(ctx,
-				thesecond.SpotlightLeft, thesecond.SpotlightRight)
-			spotBox        = spotGroup.AddBox(ctx, evt.OBeatDistWave(0.5))
-			spotBrightness = fx.NewCurve(0, 2.4, 2.4, 2.4, 1.2)
-			spotColor      = opt.SeqOrdinal(
-				[]evt.ColorEventColor{evt.Red, evt.Blue, evt.White, evt.White},
-			)(ctx)
-		)
-		ctx.WRng(beat.RngStep(0, 1, 3), func(ctx context.Context) {
-			spotBox.AddEvent(ctx, spotColor[ctx.Ordinal()], evt.OBrightness(spotBrightness.Lerp(ctx.T())), evt.Transition)
-		})
+	stdColor(ctx, beat.Seq(64), beat.RngStep(0, 1, 3),
+		thesecond.Spotlight,
+		evt.OBeatDistWave(0.5),
+		fx.OBrightness(0, 0.3, 0.0, 2.4, ease.InOutCirc),
+		fx.OBrightness(0.3, 1, 2.4, 1.2, ease.InOutCirc),
+		opt.Ordinal(evt.Red, evt.Blue, evt.White),
+		fx.InstantTransit,
+	)
 
-	})
+	stdRotation(ctx, beat.Seq(66), beat.RngStep(0, 0.9, 1),
+		thesecond.Spotlight,
+		evt.OBeatDistWave(1.0), evt.ODistWave(0),
+		evt.OLoop(1), evt.ORotation(0),
+	)
 
-	ctx.WSeq(beat.Seq(66), func(ctx context.Context) {
-		spotRot := evt.RotationGroup(ctx, thesecond.SpotlightLeft, thesecond.SpotlightRight)
-		spotRotBox := spotRot.AddBox(ctx, evt.OBeatDistWave(1.0), evt.ODistWave(0))
-
-		ctx.WRng(beat.RngStep(0, 0.9, 1), func(ctx context.Context) {
-			spotRotBox.AddEvent(ctx, evt.OLoop(1), evt.ORotation(0))
-		})
-	})
+	fx.Off(ctx, 70, thesecond.Spotlight)
 }
 
 func Verse1(ctx context.Context) {
-	fx.Off(ctx, 70, thesecond.SpotlightLeft, thesecond.SpotlightRight)
-
 	fx.RotReset(ctx, 70-0.1, thesecond.TopLasersLeftTop, thesecond.TopLasersRightTop, evt.ORotation(90))
 	fx.RotReset(ctx, 78-0.1, thesecond.BottomLasersLeftTop, thesecond.BottomLasersRightTop, evt.ORotation(90))
 
@@ -202,260 +129,109 @@ func Verse1(ctx context.Context) {
 			evt.Red,
 			opt.Ordinal(evt.White, evt.Red, evt.White),
 		),
-		evt.OBrightnessT(ease.InCirc.Func, scale.FromUnitClamp(3, 1.2)),
+		fx.OBrightness(0, 1, 3, 1.2, ease.InCirc),
 		fx.InstantTransit,
 	).Do(func(ctx context.Context) {
-		ctx.WSeq(beat.Seq(70, 78, 86, 94), func(ctx context.Context) {
-			box := evt.ColorGroup(ctx, thesecond.TopLasers).AddBox(ctx)
-			ctx.WRng(beat.RngStep(0, 0.75, 3), func(ctx context.Context) {
-				box.AddEvent(ctx)
-			})
-		})
-
-		ctx.WSeq(beat.Seq(78, 86, 94, 95), func(ctx context.Context) {
-			box := evt.ColorGroup(ctx, thesecond.BottomLasers).AddBox(ctx)
-			ctx.WRng(beat.RngStep(0, 0.75, 3), func(ctx context.Context) {
-				box.AddEvent(ctx)
-			})
-		})
+		stdColor(ctx,
+			beat.Seq(70, 78, 86, 94),
+			beat.RngStep(0, 0.75, 3),
+			thesecond.TopLasers,
+		)
+		stdColor(ctx,
+			beat.Seq(78, 86, 94, 94.5),
+			beat.RngStep(0, 0.75, 3),
+			thesecond.BottomLasers,
+		)
 	})
 
-	clock(ctx, 70, 2, 1, 90, 270, -45, evt.CW,
+	clock(ctx, 70, 2, 1, 90, 270, -30, evt.CW,
 		thesecond.TopLasersTop)
 	clock(ctx, 70, 2, 1, 90, 270, 22.5, evt.CCW,
 		thesecond.TopLasersBottom)
-	clock(ctx, 78, 2, 1, 90, 270, 45, evt.CW,
+	clock(ctx, 78, 2, 1, 90, 270, 30, evt.CW,
 		thesecond.BottomLasersTop)
 	clock(ctx, 78, 2, 1, 90, 270, -22.5, evt.CCW,
 		thesecond.BottomLasersBottom)
 
-	//ctx.WSeq(beat.Seq(70), func(ctx context.Context) {
-	//	{
-	//		b := evt.RotationGroup(ctx, thesecond.TopLasersLeftTop, thesecond.TopLasersRightTop).
-	//			AddBox(ctx, evt.OBeatDistStep(2), evt.ODistWave(-45))
-	//
-	//		ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-	//			if ctx.First() {
-	//				b.AddEvent(ctx, evt.ORotation(90), evt.EasingNone)
-	//			} else {
-	//				b.AddEvent(ctx, evt.ORotation(270), evt.EasingInOutQuad, evt.CW, evt.OLoop(1))
-	//			}
-	//		})
-	//	}
-	//
-	//	{
-	//		b := evt.RotationGroup(ctx, thesecond.TopLasersLeftBottom, thesecond.TopLasersRightBottom).
-	//			AddBox(ctx, evt.OBeatDistStep(2), evt.ODistWave(45.0/2.0))
-	//
-	//		ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-	//			if ctx.First() {
-	//				b.AddEvent(ctx, evt.ORotation(90), evt.EasingNone)
-	//			} else {
-	//				b.AddEvent(ctx, evt.ORotation(270), evt.EasingInOutQuad, evt.CCW, evt.OLoop(1))
-	//			}
-	//		})
-	//
-	//	}
-	//})
-	//ctx.WSeq(beat.Seq(78), func(ctx context.Context) {
-	//	{
-	//		b := evt.RotationGroup(ctx, thesecond.BottomLasersLeftTop, thesecond.BottomLasersRightTop).
-	//			AddBox(ctx, evt.OBeatDistStep(2), evt.ODistWave(-45))
-	//
-	//		ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-	//			if ctx.First() {
-	//				b.AddEvent(ctx, evt.ORotation(90), evt.EasingNone)
-	//			} else {
-	//				b.AddEvent(ctx, evt.ORotation(270), evt.EasingInOutQuad, evt.CCW, evt.OLoop(1))
-	//			}
-	//		})
-	//	}
-	//
-	//	{
-	//		b := evt.RotationGroup(ctx, thesecond.BottomLasersLeftBottom, thesecond.BottomLasersRightBottom).
-	//			AddBox(ctx, evt.OBeatDistStep(2), evt.ODistWave(45.0/2.0))
-	//
-	//		ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-	//			if ctx.First() {
-	//				b.AddEvent(ctx, evt.ORotation(90), evt.EasingNone)
-	//			} else {
-	//				b.AddEvent(ctx, evt.ORotation(270), evt.EasingInOutQuad, evt.CW, evt.OLoop(1))
-	//			}
-	//		})
-	//
-	//	}
-	//})
-	ctx.WSeq(beat.Seq(86), func(ctx context.Context) {
-		{
-			b := evt.RotationGroup(ctx, thesecond.TopLasers, thesecond.BottomLasers).
-				AddBox(ctx, evt.OBeatDistStep(2), evt.ODistWave(0))
+	clock(ctx, 86, 2, 1, 270, 180, 0, evt.RotAuto,
+		thesecond.Lasers, clockTransit)
+	clock(ctx, 94, 0, 1, 180, 33, 71, evt.RotAuto,
+		thesecond.BottomLasers, clockTransit, clockBDistWave(1), clockLoop(0))
+	clock(ctx, 94.5, 0, 1, 180, 33, 71, evt.RotAuto,
+		thesecond.TopLasers, clockTransit, clockBDistWave(1), clockLoop(0))
 
-			ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-				if ctx.First() {
-					b.AddEvent(ctx, evt.Extend)
-				} else {
-					b.AddEvent(ctx, evt.ORotation(180), evt.EasingInOutQuad, evt.OLoop(1))
-				}
-			})
-		}
-	})
+	stdColor(ctx, beat.Seq(98.5), beat.RngStep(0, 1, 2),
+		thesecond.Lasers, evt.OBeatDistStep(0.5), evt.White, fx.ExtendTransit)
 
-	ctx.WSeq(beat.Seq(94), func(ctx context.Context) {
-		{
-			b := evt.RotationGroup(ctx, thesecond.BottomLasers).
-				AddBox(ctx, evt.OBeatDistWave(1), evt.ODistWave(71))
+	clock(ctx, 98.5, 0.5, 0.75, 33, 270, 0, evt.RotAuto,
+		thesecond.BottomLasers,
+		clockTransit, clockLoop(0))
+	clock(ctx, 99.0, 0.5, 0.75, 33, 270, 0, evt.RotAuto,
+		thesecond.TopLasers,
+		clockTransit, clockLoop(0))
 
-			ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-				if ctx.First() {
-					b.AddEvent(ctx, evt.Extend)
-				} else {
-					b.AddEvent(ctx, evt.ORotation(33), evt.EasingInOutQuad)
-				}
-			})
-		}
-		{
-			b := evt.RotationGroup(ctx, thesecond.TopLasers).
-				AddBox(ctx, evt.OBeatDistWave(1), evt.ODistWave(33))
-
-			ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-				if ctx.First() {
-					b.AddEvent(ctx, evt.Extend)
-				} else {
-					b.AddEvent(ctx, evt.ORotation(71), evt.EasingInOutQuad)
-				}
-			})
-		}
-	})
-	ctx.WSeq(beat.Seq(98.5), func(ctx context.Context) {
-		{
-			b := evt.ColorGroup(ctx, thesecond.BottomLasers, thesecond.TopLasers).
-				AddBox(ctx, evt.OBeatDistStep(0.5))
-			ctx.WRng(beat.RngStep(0, 1, 2), func(ctx context.Context) {
-				if ctx.First() {
-					b.AddEvent(ctx, evt.Extend)
-				} else {
-					b.AddEvent(ctx, evt.White)
-				}
-			})
-		}
-		{
-			b := evt.RotationGroup(ctx, thesecond.BottomLasers).
-				AddBox(ctx, evt.OBeatDistStep(0.5))
-
-			ctx.WRng(beat.RngStep(0, 0.75, 2), func(ctx context.Context) {
-				if ctx.First() {
-					b.AddEvent(ctx, evt.Extend)
-				} else {
-					b.AddEvent(ctx, evt.ORotation(270), evt.EasingInOutQuad, evt.OLoop(0))
-				}
-			})
-		}
-		{
-			g := evt.RotationGroup(ctx, thesecond.TopLasers)
-			g.Beat += 0.5
-			b := g.AddBox(ctx, evt.OBeatDistStep(0.5))
-			ctx.WRng(beat.RngStep(0, 0.75, 2), func(ctx context.Context) {
-				if ctx.First() {
-					b.AddEvent(ctx, evt.Extend)
-				} else {
-					b.AddEvent(ctx, evt.ORotation(270), evt.EasingOutQuad, evt.OLoop(0))
-				}
-			})
-		}
-	})
-
-	ctx.WOpt(
+	stdColor(ctx, beat.Seq(102, 110, 118), beat.RngStep(0, 0.75, 3),
+		thesecond.Lasers,
 		evt.OBeatDistWave(1.35),
 		opt.IfSeqLast[evt.ColorEventOption](
 			evt.Red,
 			opt.Ordinal(evt.White, evt.Red, evt.White),
 		),
-		evt.OBrightnessT(ease.InCirc.Func, scale.FromUnitClamp(3, 1.2)),
+		fx.OBrightness(0, 1, 3, 1.2, ease.InCirc),
 		fx.InstantTransit,
-	).Do(func(ctx context.Context) {
-		ctx.WSeq(beat.Seq(102, 110, 118), func(ctx context.Context) {
-			box := evt.ColorGroup(ctx, thesecond.TopLasers, thesecond.BottomLasers).AddBox(ctx)
-			ctx.WRng(beat.RngStep(0, 0.75, 3), func(ctx context.Context) {
-				box.AddEvent(ctx)
-			})
-		})
-	})
-
-	ctx.WSeq(beat.Seq(102, 110, 118), func(ctx context.Context) {
-		g := evt.RotationGroup(ctx, thesecond.TopLasers, thesecond.BottomLasers)
-		b := g.AddBox(ctx, evt.ODistWave(opt.SeqOrdinal(15.0, 47.0, 7.0)(ctx)))
-
-		ctx.WRng(beat.RngStep(0, 0.5, 2), func(ctx context.Context) {
-			if ctx.First() {
-				b.AddEvent(ctx, evt.Extend)
-			} else {
-				b.AddEvent(ctx, evt.ORotation(opt.SeqOrdinal(260.0, 96.0, 260.0)(ctx)), evt.EasingInOutQuad)
-			}
-		})
-
-		g2 := evt.RotationGroup(ctx, thesecond.TopLasers, thesecond.BottomLasers)
-		g2.Beat += 0.1
-		b2 := g2.AddBox(ctx,
-			evt.OBeatDistStep(2),
-			evt.ODistWave(opt.SeqOrdinal(43.0, 13.0, -37.0)(ctx)),
-			evt.ODistAffectFirst(true),
-		)
-
-		ctx.WRng(beat.RngStep(0, 0.5, 2), func(ctx context.Context) {
-			if ctx.First() {
-				b2.AddEvent(ctx, evt.Extend)
-			} else {
-				b2.AddEvent(ctx,
-					evt.ORotation(opt.SeqOrdinal(43.0, 290.0, 11.0)(ctx)),
-					evt.EasingInOutQuad, evt.CCW, evt.OLoop(1))
-			}
-		})
-	})
-
-	stdColor(ctx,
-		beat.Seq(125),
-		beat.RngStep(0, 3.6, 20),
-		thesecond.TopLasers, thesecond.BottomLasers,
-		evt.Blue, fx.InstantTransit,
-		evt.OBeatDistWave(2),
-		fx.OBrightness(0, 1, 2.4, 0, ease.OutCirc),
 	)
 
-	ctx.WSeq(beat.Seq(123.5, 124), func(ctx context.Context) {
-		rg, rb := evt.RotationGroupWithBox(ctx, thesecond.TopLasers, thesecond.BottomLasers)
-		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
-			rb.AddEvent(ctx, evt.Extend)
-		})
-		rg.Beat -= 0.1
-		_, b := evt.RotationGroupWithBox(ctx,
-			opt.Ordinal(thesecond.TopLasers, thesecond.BottomLasers),
-			evt.OBeatDistWave(0.4), evt.ODistWave(-37),
-		)
-		ctx.WRng(beat.RngStep(0, 0.8, 20), func(ctx context.Context) {
-			b.AddEvent(ctx, fx.ORotation(0, 1, 11, 0, ease.InOutQuad))
-		})
-	})
-	ctx.WSeq(beat.Seq(125), func(ctx context.Context) {
+	clock2(ctx, 102, 2, 0.5, 260, 43, 15, 43, thesecond.Lasers)
+	clock2(ctx, 110, 2, 0.5, 96, 290, 47, 13, thesecond.Lasers)
+	clock2(ctx, 118, 2, 0.5, 260, 35, 7, -37, thesecond.Lasers)
 
-		_, b := evt.RotationGroupWithBox(ctx,
-			thesecond.TopLasers, thesecond.BottomLasers,
-			evt.OBeatDistWave(1.5), evt.ODistWave(31),
-		)
-		ctx.WRng(beat.RngStep(0, 2, 20), func(ctx context.Context) {
-			b.AddEvent(ctx, fx.ORotation(0, 1, 0, 65, ease.OutCirc))
-		})
-	})
+	stdColor(ctx, beat.Seq(123), beat.RngStep(0, 2.5, 12), thesecond.TopLasersLeft,
+		fx.OBrightness(0, 1, 1.2, 0, ease.InCirc),
+		opt.T(evt.White, evt.Blue, evt.Blue),
+		fx.InstantTransit,
+	)
+	fx.RotHold(ctx, 123-0.1, thesecond.TopLasersLeft)
+	stdRotation(ctx, beat.Seq(123), beat.RngStep(0, 3, 20),
+		thesecond.TopLasersLeft,
+		evt.OBeatDistWave(1), evt.ODistWave(-37),
+		fx.ORotation(0, 1, 35, 60, ease.OutCirc),
+	)
 
+	stdColor(ctx, beat.Seq(124), beat.RngStep(0, 2.5, 12), thesecond.TopLasersRight,
+		fx.OBrightness(0, 1, 1.2, 0, ease.InCirc),
+		opt.T(evt.White, evt.Blue, evt.Blue),
+		fx.InstantTransit,
+	)
+	fx.RotHold(ctx, 124-0.1, thesecond.TopLasersRight)
+	stdRotation(ctx, beat.Seq(124), beat.RngStep(0, 3, 20),
+		thesecond.TopLasersRight,
+		evt.OBeatDistWave(1), evt.ODistWave(-37),
+		fx.ORotation(0, 1, 35, 60, ease.OutCirc),
+	)
+
+	stdColor(ctx, beat.Seq(125), beat.RngStep(0, 1.9, 12), thesecond.BottomLasers,
+		fx.OBrightness(0, 1, 1.2, 0, ease.InCirc),
+		opt.T(evt.White, evt.Red, evt.Red),
+		fx.InstantTransit,
+	)
+	fx.RotHold(ctx, 125-0.1, thesecond.BottomLasers)
+	stdRotation(ctx, beat.Seq(125), beat.RngStep(0, 3, 20),
+		thesecond.BottomLasers,
+		evt.ODistWave(10),
+		fx.ORotation(0, 1, 35, 60, ease.OutCirc),
+	)
+
+	fx.RotHold(ctx, 129-0.2, thesecond.Lasers)
 	stdColor(ctx,
-		beat.Seq(129, 129.5),
-		beat.RngStep(0, 1.9, 20),
+		beat.Seq(128.9, 129.3),
+		beat.RngStep(0, 1.3, 10),
 		opt.SeqOrdinal(thesecond.TopLasers, thesecond.BottomLasers),
 		evt.White, fx.InstantTransit,
-		evt.OBeatDistWave(1.4),
-		fx.OBrightness(0, 1, 2, 0, ease.InOutCirc),
+		//evt.OBeatDistWave(0.9),
+		fx.OBrightness(0, 1, 1.2, 0, ease.InOutCirc),
 	)
 
-	ctx.WSeq(beat.Seq(129, 129.5), func(ctx context.Context) {
+	ctx.WSeq(beat.Seq(128.9, 129.3), func(ctx context.Context) {
 		_, b := evt.RotationGroupWithBox(ctx,
 			opt.SeqOrdinal(thesecond.TopLasers, thesecond.BottomLasers),
 			evt.ODistWave(91), evt.OBeatDistWave(1.5))
@@ -466,37 +242,7 @@ func Verse1(ctx context.Context) {
 }
 
 func Build1(ctx context.Context) {
-	stdColor(ctx,
-		beat.Seq(131, 132, 133),
-		beat.RngStep(0, 0.8, 2),
-		thesecond.Runway,
-		opt.Ordinal(evt.Blue, evt.White),
-		fx.InstantTransit,
-		evt.ODistWave(0.4),
-		opt.Ordinal(evt.OBrightness(0.7), evt.OBrightness(0.0)),
-	)
-	//ctx.WSeq(beat.Seq(131, 132, 133), func(ctx context.Context) {
-	//	_, b := evt.ColorGroupWithBox(ctx, thesecond.Runway, evt.ODistWave(1.2))
-	//
-	//	ctx.WRng(beat.RngStep(0, 0.8, 10), func(ctx context.Context) {
-	//		b.AddEvent(ctx, fx.InstantTransit, evt.Red,
-	//
-	//			evt.OBrightness(scale.FromUnitClamp(1.8, 0)(ease.OutCirc.Func(ctx.T()))))
-	//	})
-	//
-	//	//if ctx.First() {
-	//	//	rg := evt.RotationGroup(ctx, thesecond.SmallRing, thesecond.BigRing)
-	//	//	rb := rg.AddBox(ctx, evt.ODistWave(-71), evt.OBeatDistWave(1.2))
-	//	//
-	//	//	ctx.WSeq(beat.Seq(0, 3), func(ctx context.Context) {
-	//	//		if ctx.First() {
-	//	//			rb.AddEvent(ctx, evt.EasingNone, evt.ORotation(-15))
-	//	//		} else {
-	//	//			rb.AddEvent(ctx, evt.EasingLinear, evt.ORotation(60))
-	//	//		}
-	//	//	})
-	//	//}
-	//})
+	softWave(ctx, beat.Seq(131, 132, 133), thesecond.Runway)
 
 	stdColor(ctx,
 		beat.SeqInterval(134, 158, 0.5),
@@ -508,48 +254,87 @@ func Build1(ctx context.Context) {
 		fx.OBrightness(0, 1, 2.4, 0, ease.InCirc),
 	)
 
-	ctx.WSeq(beat.SeqInterval(133.7, 157.7, 0.5), func(ctx context.Context) {
-		_, b := evt.RotationGroupWithBox(ctx,
-			opt.SeqOrdinal(thesecond.SpotlightLeft, thesecond.SpotlightRight),
-			evt.OBeatDistWave(1.8),
+	sideBounce(ctx,
+		beat.SeqInterval(133.6, 157.6, 0.5),
+		beat.RngStep(0, 1.6, 20),
+		evt.OBeatDistWave(1.8),
+		sideBounceAlt,
+		fx.ORotation(0, 1, 335, 305, ease.OutBounce),
+	)
+
+	//resetF := opt.Set("reset", false)
+
+	gesture(ctx, beat.Seq(134), 40, 100, 13, 1.2,
+		thesecond.TopLasersLeftTop, thesecond.BottomLasersLeftBottom,
+		opt.T(evt.White, evt.Red, evt.Red),
+	)
+
+	gesture(ctx, beat.Seq(136), 74, 39, 38, 0.6,
+		thesecond.BottomLasersRightTop, evt.Red)
+	gesture(ctx, beat.Seq(137), 74, 39, 19, 0.6,
+		thesecond.TopLasersRightTop, evt.Blue)
+
+	ctx.WSeq(beat.Seq(139, 140, 141), func(ctx context.Context) {
+		gesture(ctx, beat.Seq(0), 74, 70, -13, 0.1,
+			opt.SeqOrdinal(evt.Blue, evt.Red, evt.Red),
+			opt.SeqOrdinal(thesecond.TopLasersLeftBottom, thesecond.TopLasersRightBottom, thesecond.BottomLasersLeftTop),
 		)
-		ctx.WRng(beat.RngStep(0, 1.4, 20), func(ctx context.Context) {
-			b.AddEvent(ctx,
-				fx.ORotation(0, 1.0, 325, 305, ease.OutBounce),
-				//fx.ORotation(0.5, 1, 300, 340, ease.InOutBounce),
-				fx.ExtendTransit,
+	})
+
+	ctx.WSeq(beat.Seq(142), func(ctx context.Context) {
+		gesture(ctx, beat.Seq(0), 74+180, 70+180, -13, 0.1,
+			thesecond.TopLasersLeftTop,
+			opt.T(evt.White, evt.Red, evt.Red))
+		gesture(ctx, beat.Seq(0), 74+180, 70+180, -13, 0.1,
+			thesecond.TopLasersRightTop,
+			opt.T(evt.White, evt.Blue, evt.Blue))
+		gesture(ctx, beat.Seq(0), 74+180, 70+180, -13, 0.1,
+			thesecond.BottomLasersLeftBottom,
+			opt.T(evt.White, evt.Blue, evt.Blue))
+
+		gesture(ctx, beat.Seq(0), 0, 0, 0, 0.1,
+			thesecond.BottomLasersRightTop,
+			evt.Blue)
+		gesture(ctx, beat.Seq(0), 180, 180, 0, 0.1,
+			thesecond.BottomLasersRightBottom,
+			evt.Red)
+	})
+
+	gesture(ctx, beat.Seq(144), 70, 75, -30, 0.1,
+		thesecond.TopLasersLeftBottom,
+		opt.T(evt.Red, evt.White, evt.White))
+	gesture(ctx, beat.Seq(145), 100, 135, -30, 0.1,
+		thesecond.BottomLasersRightBottom,
+		opt.T(evt.Blue, evt.White, evt.White))
+
+	// kimochi - 147, 148, 149
+	ctx.WSeq(beat.Seq(147, 148, 149), func(ctx context.Context) {
+		lightColor := opt.SeqOrdinal(
+			opt.Combine(thesecond.TopLasersTop, opt.Ordinal(evt.Blue, evt.White)),
+			opt.Combine(thesecond.TopLasersBottom, opt.Ordinal(evt.Red, evt.White)),
+			opt.Combine(thesecond.BottomLasers, opt.Ordinal(evt.Blue, evt.White)),
+		)
+		fx.RotReset(ctx, -0.1, lightColor, evt.ORotation(0))
+		ctx.WOpt(
+			opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+			fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+		).Do(func(ctx context.Context) {
+			incantation(ctx, beat.Seq0,
+				beat.RngStep(0, 1.2, 2),
+				beat.RngStep(0, 6.5, 30),
+				lightColor,
 			)
 		})
 	})
 
-	resetF := opt.Set("reset", false)
+	trill(ctx, beat.Seq(150), thesecond.TopLasers, evt.Red)
+	trill(ctx, beat.Seq(150), thesecond.BottomLasers, evt.Red)
 
-	gesture(ctx, beat.Seq(134), 43, 47, 13, 0.1, thesecond.TopLasersLeftTop)
-	gesture(ctx, beat.Seq(136), 131, 138, 19, 0.1, thesecond.TopLasersRightTop)
-	gesture(ctx, beat.Seq(137), 31, 39, 21, 0.1, thesecond.BottomLasersRightTop)
-	gesture(ctx, beat.Seq(139), 23, 25, 6, 0.1, thesecond.TopLasersLeftBottom)
-	gesture(ctx, beat.Seq(140), 24, 26, 7, 0.1, thesecond.BottomLasersLeftTop)
-	gesture(ctx, beat.Seq(141), 20, 30, 17, 0.15, thesecond.BottomLasersLeftBottom)
-
-	gesture(ctx, beat.Seq(142), 47, 49, 13, 0.1, thesecond.TopLasersLeftTop, evt.White)
-	gesture(ctx, beat.Seq(142), 138, 140, 19, 0.1, thesecond.TopLasersRightTop, evt.White)
-	gesture(ctx, beat.Seq(142), 39, 41, 21, 0.1, thesecond.BottomLasersRightTop, evt.Blue)
-	gesture(ctx, beat.Seq(142), 25, 27, 6, 0.1, thesecond.TopLasersLeftBottom, evt.White)
-	gesture(ctx, beat.Seq(142), 26, 28, 7, 0.1, thesecond.BottomLasersLeftTop, evt.Blue)
-	gesture(ctx, beat.Seq(142), 30, 32, 17, 0.1, thesecond.BottomLasersLeftBottom, evt.Blue)
-
-	gesture(ctx, beat.Seq(144), 71, 74, 9, 0.1, thesecond.TopLasersRightBottom, evt.Red)
-	gesture(ctx, beat.Seq(145), 73, 81, 9, 0.1, thesecond.BottomLasersRightBottom, evt.Red)
-
-	kimochiEasing := opt.Set("easing", ease.OutQuad)
-	gesture(ctx, beat.Seq(147), 9, 12, 7, 0.05, thesecond.TopLasers, evt.Red, kimochiEasing, resetF)
-	gesture(ctx, beat.Seq(148), 13, 21, 7, 0.05, thesecond.BottomLasers, evt.Blue, kimochiEasing, resetF)
-	gesture(ctx, beat.Seq(149), 10, 17, 7, 0.05, thesecond.TopLasers, thesecond.BottomLasers, evt.White, kimochiEasing, resetF)
-
-	trill(ctx, beat.Seq(150), thesecond.TopLasers, thesecond.BottomLasers)
-
-	gesture(ctx, beat.Seq(152), 14, 16, 13, 0.1, thesecond.TopLasersLeftTop, thesecond.TopLasersRightBottom, evt.Blue)
-	gesture(ctx, beat.Seq(153), 16, 14, 13, 0.1, thesecond.TopLasersLeftBottom, thesecond.TopLasersRightTop, evt.Blue)
+	gesture(ctx, beat.Seq(152), 14, 16, 13, 0.1,
+		thesecond.TopLasersLeftTop, thesecond.TopLasersRightBottom, evt.Blue)
+	gesture(ctx, beat.Seq(153), 16, 14, 13, 0.1,
+		thesecond.TopLasersLeftBottom, thesecond.TopLasersRightTop, evt.Blue)
 
 	stdColor(ctx, beat.Seq(155), beat.RngStep(0, 1, 10),
 		thesecond.TopLasersLeftTop, thesecond.TopLasersRightBottom,
@@ -573,7 +358,7 @@ func Build1(ctx context.Context) {
 	)
 
 	ctx.WSeq(beat.Seq(160, 162), func(ctx context.Context) {
-		light := opt.SeqOrdinal(thesecond.SpotlightLeft, thesecond.SpotlightRight)(ctx)
+		light := opt.SeqOrdinal(thesecond.SpotlightLeft, thesecond.SpotlightRight)
 		spotlightGhost(ctx,
 			beat.Seq(0),
 			beat.RngStep(0, 1.6, 4),
@@ -589,270 +374,253 @@ func Build1(ctx context.Context) {
 		)
 	})
 }
-func Chorus1(ctx context.Context) {
-	spotlightGhost(ctx,
-		beat.Seq(164),
-		beat.RngStep(0, 2, 4),
-		beat.RngStep(0, 2.4, 10),
-		-20, 20, 0, -75,
-		thesecond.SpotlightLeft, thesecond.SpotlightRight,
-		fx.OBrightness(0.0, 1.0, 0, 2.4, ease.OutCirc),
-		opt.Ordinal(evt.White, evt.Red),
-		opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
-		opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
-		evt.CW,
-	)
 
+func Chorus1(ctx context.Context) {
 	ctx.WSeq(beat.Seq(164), func(ctx context.Context) {
-		stdColor(ctx, beat.Seq(0), beat.RngStep(0, 1, 2),
-			thesecond.Runway, thesecond.BigRing,
-			opt.Ordinal(evt.White, evt.Red),
-			opt.Ordinal(evt.OBrightness(0), evt.OBrightness(2.8)),
-			fx.InstantTransit,
-			evt.OBeatDistStep(0.08),
-			evt.OStepAndOffsetFilter(0, 1, evt.OOrder(evt.FilterOrderRandom, 123)),
+		spotlightGhost(ctx, beat.Seq0,
+			beat.RngStep(0, 1.2, 4),
+			beat.RngStep(0, 1.2, 10),
+			-80, 40, 0, 120,
+			thesecond.SpotlightLeft, thesecond.SpotlightRight,
+			fx.OBrightness(0.0, 1.0, 0, 2.4, ease.OutCirc),
+			opt.T(evt.White, evt.Red),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(2.0)),
+			evt.CW,
 		)
-	})
-	ctx.WSeq(beat.Seq(164), func(ctx context.Context) {
-		stdColor(ctx, beat.Seq(0), beat.RngStep(0, 1, 2),
+		randFill(ctx, beat.Seq0,
+			beat.RngStep(0, 0.8, 2),
+			thesecond.Runway, thesecond.BigRing,
+			fx.OBrightness(0, 1, 0, 2.4, ease.InOutCirc),
+			opt.T(evt.White, evt.Red),
+			evt.OBeatDistWave(1.7),
+		)
+		randFill(ctx, beat.Seq0,
+			beat.RngStep(0, 0.8, 2),
 			thesecond.SmallRing,
-			opt.Ordinal(evt.Red, evt.White),
-			opt.Ordinal(evt.OBrightness(0), evt.OBrightness(1.0)),
-			fx.InstantTransit,
-			evt.OBeatDistStep(0.04),
-			evt.OStepAndOffsetFilter(0, 1, evt.OOrder(evt.FilterOrderRandom, 123)),
+			fx.OBrightness(0, 1, 0, 1.0, ease.InOutCirc),
+			opt.T(evt.Red, evt.White),
+			evt.OBeatDistWave(1.7),
 		)
 	})
 
 	fx.Off(ctx, 166, thesecond.Spotlight)
 
-	smolEscSeq := beat.Seq(166, 168, 170, 172)
-
-	spotlightGhost(ctx,
-		smolEscSeq,
-		beat.RngStep(0, 1.4, 3),
-		beat.RngStep(0, 1.4, 10),
-		-20+15*ctx.SeqOrdinalF(), 20+15*ctx.SeqOrdinalF(), 15, -15-27*ctx.SeqOrdinalF(),
-		thesecond.SpotlightLeft, thesecond.SpotlightRight,
-		opt.IfSeqFirst[evt.ColorEventOption](
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			opt.Combine(
-				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
-				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+	ctx.WSeq(beat.Seq(166, 168, 170, 172), func(ctx context.Context) {
+		spotlightGhost(ctx, beat.Seq0,
+			beat.RngStep(0, 1.4, 3),
+			beat.RngStep(0, 1.4, 10),
+			-20+15*ctx.SeqOrdinalF(), 20+15*ctx.SeqOrdinalF(), 15, -15-27*ctx.SeqOrdinalF(),
+			thesecond.Spotlight,
+			opt.IfSeqFirst[evt.ColorEventOption](
+				fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+				opt.Combine(
+					fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+					fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+				),
 			),
-		),
-		opt.Ordinal(evt.Blue, evt.White, evt.Blue),
-		opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
-		opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
-		opt.IfFirst(evt.RotAuto, evt.CW),
-		opt.Set("reset", false),
-	)
+			opt.Ordinal(evt.Blue, evt.White, evt.Blue),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			opt.IfFirst(evt.RotAuto, evt.CW),
+			opt.Set("reset", false),
+		)
 
-	smolEscalation(ctx,
-		smolEscSeq,
-		beat.RngStep(0, 1, 10),
-	)
+		smolEscalation(ctx, beat.Seq0,
+			beat.RngStep(0, 1, 10),
+		)
 
-	stdColor(ctx,
-		smolEscSeq,
-		beat.RngStep(0, 1, 10),
-		thesecond.SmallRing,
-		opt.SeqOrdinal(evt.Blue, evt.White),
-		opt.IfSeqFirst[evt.ColorEventOption](
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			opt.Combine(
-				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
-				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+		ctx.WOpt(
+			opt.IfSeqFirst[evt.ColorEventOption](
+				fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+				opt.Combine(
+					fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+					fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+				),
 			),
-		),
-		fx.InstantTransit,
-		evt.OBeatDistStep(0.04),
-	)
-
-	stdColor(ctx,
-		smolEscSeq,
-		beat.RngStep(0, 1, 10),
-		thesecond.BigRing,
-		opt.SeqOrdinal(evt.White, evt.Red),
-		opt.IfSeqFirst[evt.ColorEventOption](
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			opt.Combine(
-				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
-				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
-			),
-		),
-		fx.InstantTransit,
-		evt.OBeatDistStep(0.04),
-	)
-
-	stdColor(ctx,
-		smolEscSeq,
-		beat.RngStep(0, 1, 10),
-		thesecond.Runway,
-		evt.Red,
-		opt.IfSeqFirst[evt.ColorEventOption](
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			opt.Combine(
-				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
-				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
-			),
-		),
-		fx.InstantTransit,
-		evt.OBeatDistStep(0.04),
-	)
-
-	// 174, 175, 176, 177
-	fusawashiSeq := beat.Seq(174, 175, 176, 177)
-
-	smolReduction(ctx,
-		fusawashiSeq,
-		beat.RngStep(0, 0.31, 2),
-	)
-
-	ctx.WSeq(fusawashiSeq, func(ctx context.Context) {
-		rng := opt.IfSeqLast(
-			beat.RngStep(0, 2.2, 10),
-			beat.RngStep(0, 0.8, 10),
-		)(ctx)
-		col := opt.IfSeqLast(
-			evt.Red,
-			opt.SeqOrdinal(evt.Blue, evt.White)(ctx),
-		)(ctx)
-		bri := opt.IfSeqLast(
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			fx.OBrightness(0.0, 1.0, 1.2, 0, ease.InCirc),
-		)(ctx)
-		stdColor(ctx,
-			beat.Seq(0),
-			rng,
-			thesecond.SmallRing,
-			col, bri,
 			fx.InstantTransit,
+		).Do(func(ctx context.Context) {
+			stdColor(ctx, beat.Seq0,
+				beat.RngStep(0, 1, 10),
+				thesecond.SmallRing,
+				opt.SeqOrdinal(evt.Blue, evt.White),
+				evt.OBeatDistStep(0.04),
+			)
+
+			stdColor(ctx, beat.Seq0,
+				beat.RngStep(0, 1, 10),
+				thesecond.BigRing,
+				opt.SeqOrdinal(evt.White, evt.Red),
+				evt.OBeatDistWave(1.4),
+			)
+
+			stdColor(ctx, beat.Seq0,
+				beat.RngStep(0, 1, 10),
+				thesecond.Runway,
+				opt.SeqOrdinal(evt.Blue, evt.Red),
+				evt.OBeatDistWave(1.4),
+			)
+		})
+	})
+
+	// fusawashi - 174, 175, 176, 177
+	ctx.WSeq(beat.Seq(174, 175, 176, 177), func(ctx context.Context) {
+		if ctx.SeqFirst() || ctx.SeqLast() {
+			fx.RotReset(ctx, 0, thesecond.BigRing, evt.ORotation(0))
+		}
+		smolReduction(ctx, beat.Seq0,
+			beat.RngStep(0, 0.31, 2),
+		)
+
+		ctx.WSeq(beat.Seq0, func(ctx context.Context) {
+			rng := opt.IfSeqLast(
+				beat.RngStep(0, 2.2, 10),
+				beat.RngStep(0, 0.8, 10),
+			)(ctx)
+			col := opt.IfSeqLast(
+				evt.Red,
+				opt.SeqOrdinal(evt.Blue, evt.White)(ctx),
+			)(ctx)
+			bri := opt.IfSeqLast(
+				fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+				fx.OBrightness(0.0, 1.0, 1.2, 0, ease.InCirc),
+			)(ctx)
+			stdColor(ctx,
+				beat.Seq(0),
+				rng,
+				thesecond.SmallRing,
+				col, bri,
+				fx.InstantTransit,
+			)
+		})
+
+		stdColor(ctx, beat.Seq0,
+			beat.RngStep(0, 1, 10),
+			thesecond.BigRing,
+			evt.OStepAndOffsetFilter(0, 1, evt.OReverse(true)),
+			opt.SeqOrdinal(evt.White, evt.Red),
+			opt.IfSeqFirst[evt.ColorEventOption](
+				fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+				opt.Combine(
+					fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+					fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+				),
+			),
+			fx.InstantTransit,
+			evt.OBeatDistStep(0.04),
+		)
+
+		stdColor(ctx, beat.Seq0,
+			beat.RngStep(0, 1, 10),
+			thesecond.Runway,
+			evt.OStepAndOffsetFilter(0, 1, evt.OReverse(true)),
+			evt.Red,
+			opt.IfSeqFirst[evt.ColorEventOption](
+				fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+				opt.Combine(
+					fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+					fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+				),
+			),
+			fx.InstantTransit,
+			evt.OBeatDistStep(0.04),
 		)
 	})
 
-	stdColor(ctx,
-		fusawashiSeq,
-		beat.RngStep(0, 1, 10),
-		thesecond.BigRing,
-		evt.OStepAndOffsetFilter(0, 1, evt.OReverse(true)),
-		opt.SeqOrdinal(evt.White, evt.Red),
-		opt.IfSeqFirst[evt.ColorEventOption](
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			opt.Combine(
-				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
-				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
-			),
-		),
-		fx.InstantTransit,
-		evt.OBeatDistStep(0.04),
-	)
-
-	stdColor(ctx,
-		fusawashiSeq,
-		beat.RngStep(0, 1, 10),
-		thesecond.Runway,
-		evt.OStepAndOffsetFilter(0, 1, evt.OReverse(true)),
-		evt.Red,
-		opt.IfSeqFirst[evt.ColorEventOption](
-			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
-			opt.Combine(
-				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
-				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
-			),
-		),
-		fx.InstantTransit,
-		evt.OBeatDistStep(0.04),
-	)
-	// 179, 180, 181, 182
-	horobiSeq := beat.Seq(179, 180, 181)
-	stdColor(ctx,
-		horobiSeq,
-		beat.RngStep(0, 0.8, 3),
-		thesecond.Runway,
-		//evt.OBeatDistWave(1.0),
-		evt.OSectionFilter(0, 0, evt.OReverse(true)),
-		evt.Blue,
-		opt.Ordinal(evt.Blue, evt.White, evt.Blue),
-		opt.Ordinal(evt.OBrightness(0), evt.OBrightness(0.2), evt.OBrightness(0.1)),
-		fx.ExtendTransit,
-		//fx.OBrightness(0, 0.5, 0, 0.4, ease.InOutQuad),
-		//fx.OBrightness(0.5, 1, 0.4, 0, ease.InOutQuad),
-	)
+	// horobi -  179, 180, 181
+	softWave(ctx, beat.Seq(179, 180, 181), thesecond.Runway)
 
 	// 182, 183, 184, 185,
 	// 186, 187, 188, 189
-	cRng := beat.RngStep(0, 1.2, 2)
-	incantation(ctx,
-		beat.Seq(182),
-		cRng,
-		beat.RngStep(0, 6.5, 30),
-		opt.Ordinal(evt.Red, evt.White),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.TopLasersLeftTop,
-		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
-		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
-	)
-	incantation(ctx,
-		beat.Seq(183),
-		cRng,
-		beat.RngStep(0, 5.5, 30),
-		opt.Ordinal(evt.Red, evt.Blue),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.TopLasersRightTop,
-		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
-		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
-	)
-	incantation(ctx,
-		beat.Seq(184),
-		cRng,
-		beat.RngStep(0, 4.5, 30),
-		opt.Ordinal(evt.Red, evt.White),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.TopLasersLeftBottom,
-		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
-		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	)
-	incantation(ctx,
-		beat.Seq(185),
-		cRng,
-		beat.RngStep(0, 3.5, 30),
-		opt.Ordinal(evt.Blue, evt.Red),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.TopLasersRightBottom,
-		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
-		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	)
-	incantation(ctx,
-		beat.Seq(186),
-		cRng,
-		beat.RngStep(0, 2.5, 30),
-		opt.Ordinal(evt.Red, evt.White),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.BottomLasersLeftBottom,
-		opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
-		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	)
-	incantation(ctx,
-		beat.Seq(187),
-		cRng,
-		beat.RngStep(0, 1.5, 30),
-		opt.Ordinal(evt.Red, evt.Blue),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.BottomLasersRightBottom,
-		opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
-		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	)
-	incantation(ctx,
-		beat.Seq(188),
-		cRng,
-		beat.RngStep(0, 0.5, 30),
-		opt.Ordinal(evt.White, evt.Red),
-		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
-		thesecond.BottomLasersTop,
-		opt.RotationBoxOnly(evt.OBeatDistWave(0.4), evt.ODistWave(36)),
-		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
-	)
+
+	incantation2(ctx, 182, 0, 5.5, 2.4, 1, 90, 180, 3, 45,
+		thesecond.TopLasersRightTop, opt.T(evt.Red, evt.Blue))
+	incantation2(ctx, 183, 0, 6.5, 2.4, 1, 90, 180, 3, 45,
+		thesecond.TopLasersLeftTop, opt.T(evt.White, evt.Red))
+	incantation2(ctx, 184, 0, 4.5, 2.4, 1, 135, 270, 3, 45,
+		thesecond.TopLasersLeftBottom, opt.T(evt.White, evt.Blue))
+	incantation2(ctx, 185, 0, 3.5, 2.4, 1, 135, 270, 3, 45,
+		thesecond.TopLasersRightBottom, opt.T(evt.Blue, evt.Red))
+	incantation2(ctx, 186, 0, 2.5, 2.4, 1, 180, 260, 1, 30,
+		thesecond.BottomLasersLeftBottom, opt.T(evt.Red, evt.White))
+	incantation2(ctx, 187, 0, 1.5, 2.4, 1, 180, 260, 1, 30,
+		thesecond.BottomLasersRightBottom, opt.T(evt.Red, evt.White))
+	incantation2(ctx, 188, 0, 0.5, 2.4, 1, 180, 270, 0.4, 90,
+		thesecond.BottomLasersTop, opt.T(evt.White, evt.Red))
+
+	//cRng := beat.RngStep(0, 1.2, 2)
+	//
+	//incantation(ctx,
+	//	beat.Seq(182),
+	//	cRng,
+	//	beat.RngStep(0, 6.5, 30),
+	//	opt.Ordinal(evt.Red, evt.White),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.TopLasersLeftTop,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+	//	fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	//)
+	//incantation(ctx,
+	//	beat.Seq(183),
+	//	cRng,
+	//	beat.RngStep(0, 5.5, 30),
+	//	opt.Ordinal(evt.Red, evt.Blue),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.TopLasersRightTop,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+	//	fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	//)
+	//incantation(ctx,
+	//	beat.Seq(184),
+	//	cRng,
+	//	beat.RngStep(0, 4.5, 30),
+	//	opt.Ordinal(evt.Red, evt.White),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.TopLasersLeftBottom,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	//)
+	//incantation(ctx,
+	//	beat.Seq(185),
+	//	cRng,
+	//	beat.RngStep(0, 3.5, 30),
+	//	opt.Ordinal(evt.Blue, evt.Red),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.TopLasersRightBottom,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	//)
+	//incantation(ctx,
+	//	beat.Seq(186),
+	//	cRng,
+	//	beat.RngStep(0, 2.5, 30),
+	//	opt.Ordinal(evt.Red, evt.White),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.BottomLasersLeftBottom,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
+	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	//)
+	//incantation(ctx,
+	//	beat.Seq(187),
+	//	cRng,
+	//	beat.RngStep(0, 1.5, 30),
+	//	opt.Ordinal(evt.Red, evt.Blue),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.BottomLasersRightBottom,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
+	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	//)
+	//incantation(ctx,
+	//	beat.Seq(188),
+	//	cRng,
+	//	beat.RngStep(0, 0.5, 30),
+	//	opt.Ordinal(evt.White, evt.Red),
+	//	opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+	//	thesecond.BottomLasersTop,
+	//	opt.RotationBoxOnly(evt.OBeatDistWave(0.4), evt.ODistWave(36)),
+	//	fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	//)
+	fx.RotHold(ctx, 189-0.1, thesecond.Lasers)
 
 	ctx.WSeq(beat.Seq(189), func(ctx context.Context) {
 		_, cb := evt.ColorGroupWithBox(ctx, thesecond.TopLasers, thesecond.BottomLasers)
@@ -1990,5 +1758,685 @@ func Bridge2(ctx context.Context) {
 		beat.RngStep(0.3, 1.8, 10),
 		1.0,
 		evt.OBeatDistWave(8),
+	)
+
+	victorySpin(ctx, 382)
+
+	pianoSparkleFadeOpts := opt.Combine(
+		evt.OBeatDistStep(0.75),
+		darkPeak(0.1, 0.5, 0.8, ease.OutCirc, ease.InCirc),
+	)
+	rotHold(ctx, 390-0.15, thesecond.TopLasers)
+	sparkleFade(ctx,
+		beat.Seq(390),
+		beat.RngStep(0, 4, 30),
+		thesecond.TopLasersLeft, evt.Blue,
+		pianoSparkleFadeOpts,
+	)
+	sparkleFade(ctx,
+		beat.Seq(390),
+		beat.RngStep(0, 4, 30),
+		thesecond.TopLasersRight, evt.White,
+		pianoSparkleFadeOpts,
+	)
+	clock(ctx, 390, 1, 0.6, 90, 100, 5, evt.CW,
+		thesecond.TopLasers)
+	rotHold(ctx, 394-0.15, thesecond.BottomLasers)
+	sparkleFade(ctx,
+		beat.Seq(394),
+		beat.RngStep(0, 4, 30),
+		thesecond.BottomLasersLeft, evt.White,
+		pianoSparkleFadeOpts,
+	)
+	sparkleFade(ctx,
+		beat.Seq(394),
+		beat.RngStep(0, 4, 30),
+		thesecond.BottomLasersRight, evt.Blue,
+		pianoSparkleFadeOpts,
+	)
+	clock(ctx, 394, 1, 0.6, 90, 100, 5, evt.CW,
+		thesecond.BottomLasers)
+
+	rotHold(ctx, 398-0.15, thesecond.TopLasers)
+	sparkleFade(ctx,
+		beat.Seq(398),
+		beat.RngStep(0, 4, 30),
+		thesecond.TopLasersLeft, evt.Blue,
+		pianoSparkleFadeOpts,
+	)
+	sparkleFade(ctx,
+		beat.Seq(398),
+		beat.RngStep(0, 4, 30),
+		thesecond.TopLasersRight, evt.White,
+		pianoSparkleFadeOpts,
+	)
+	clock(ctx, 398, 1, 0.6, 180, 190, 5, evt.CW,
+		thesecond.TopLasers)
+
+	rotHold(ctx, 402-0.15, thesecond.BottomLasers)
+	sparkleFade(ctx,
+		beat.Seq(402),
+		beat.RngStep(0, 4, 30),
+		thesecond.BottomLasersLeft, evt.White,
+		pianoSparkleFadeOpts,
+	)
+	sparkleFade(ctx,
+		beat.Seq(402),
+		beat.RngStep(0, 4, 30),
+		thesecond.BottomLasersRight, evt.Blue,
+		pianoSparkleFadeOpts,
+	)
+	clock(ctx, 402, 1, 0.6, 180, 190, 5, evt.CW,
+		thesecond.BottomLasers)
+
+	ctx.WSeq(beat.Seq(390, 394, 396, 398, 402, 404, 406, 410), func(ctx context.Context) {
+		spotlightGhost(ctx,
+			beat.Seq(0),
+			beat.RngStep(0, 1.6, 4),
+			beat.RngStep(0, 2.4, 10),
+			20, -20, 0, -45,
+			thesecond.Spotlight,
+			fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
+			fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
+			opt.Ordinal(evt.Red, evt.Red, evt.White, evt.White),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			evt.CCW,
+		)
+	})
+	victorySpin(ctx, 414)
+
+	ctx.WSeq(beat.Seq(414, 418, 419, 420, 421, 422, 426, 427, 428, 430, 434, 436, 438, 442), func(ctx context.Context) {
+		spotlightGhost(ctx,
+			beat.Seq(0),
+			beat.RngStep(0, 1.6, 4),
+			beat.RngStep(0, 2.4, 10),
+			20, -20, 0, -45,
+			thesecond.Spotlight,
+			fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
+			fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
+			opt.Ordinal(evt.Red, evt.Red, evt.White, evt.White),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			evt.CCW,
+		)
+	})
+}
+
+func SilentBridge(ctx context.Context) {
+	sukitoSeq := beat.Seq(443, 444, 445, 446, 450, 452, 454, 456, 458, 460, 462, 464, 466, 468, 470)
+
+	stdColor(ctx,
+		sukitoSeq,
+		beat.RngStep(0, 2, 20),
+		opt.SeqOrdinal(thesecond.TopLasersLeft, thesecond.BottomLasersRightBottom, thesecond.TopLasersLeftBottom, thesecond.BottomLasersRightBottom),
+		evt.White, fx.InstantTransit,
+		evt.OBeatDistWave(1.5),
+		fx.OBrightness(0, 2, 1.1, 0, ease.OutCirc),
+	)
+
+	ctx.WSeq(beat.Seq(443), func(ctx context.Context) {
+		_, b := evt.RotationGroupWithBox(ctx,
+			thesecond.TopLasers, thesecond.BottomLasers,
+			evt.ODistWave(17), evt.OBeatDistWave(2.4))
+		ctx.WRng(beat.RngStep(0, 32, 20), func(ctx context.Context) {
+			b.AddEvent(ctx, fx.ORotation(0, 1, 17, 180, ease.OutCirc))
+		})
+	})
+}
+
+func Chorus3(ctx context.Context) {
+	spotlightGhost(ctx,
+		beat.Seq(476),
+		beat.RngStep(0, 2, 4),
+		beat.RngStep(0, 2.4, 10),
+		-20, 20, 0, -75,
+		thesecond.SpotlightLeft, thesecond.SpotlightRight,
+		fx.OBrightness(0.0, 1.0, 0, 2.4, ease.OutCirc),
+		opt.Ordinal(evt.White, evt.Red),
+		opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+		opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+		evt.CW,
+	)
+
+	ctx.WSeq(beat.Seq(476), func(ctx context.Context) {
+		stdColor(ctx, beat.Seq(0), beat.RngStep(0, 1, 2),
+			thesecond.Runway, thesecond.BigRing,
+			opt.Ordinal(evt.White, evt.Red),
+			opt.Ordinal(evt.OBrightness(0), evt.OBrightness(2.8)),
+			fx.InstantTransit,
+			evt.OBeatDistStep(0.08),
+			evt.OStepAndOffsetFilter(0, 1, evt.OOrder(evt.FilterOrderRandom, 123)),
+		)
+	})
+	ctx.WSeq(beat.Seq(476), func(ctx context.Context) {
+		stdColor(ctx, beat.Seq(0), beat.RngStep(0, 1, 2),
+			thesecond.SmallRing,
+			opt.Ordinal(evt.Red, evt.White),
+			opt.Ordinal(evt.OBrightness(0), evt.OBrightness(1.0)),
+			fx.InstantTransit,
+			evt.OBeatDistStep(0.04),
+			evt.OStepAndOffsetFilter(0, 1, evt.OOrder(evt.FilterOrderRandom, 123)),
+		)
+	})
+
+	fx.Off(ctx, 478, thesecond.Spotlight)
+
+	smolEscSeq := beat.Seq(478, 480, 482, 484)
+
+	spotlightGhost(ctx,
+		smolEscSeq,
+		beat.RngStep(0, 1.4, 3),
+		beat.RngStep(0, 1.4, 10),
+		-20+15*ctx.SeqOrdinalF(), 20+15*ctx.SeqOrdinalF(), 15, -15-27*ctx.SeqOrdinalF(),
+		thesecond.SpotlightLeft, thesecond.SpotlightRight,
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		opt.Ordinal(evt.Blue, evt.White, evt.Blue),
+		opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+		opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+		opt.IfFirst(evt.RotAuto, evt.CW),
+		opt.Set("reset", false),
+	)
+
+	smolEscalation(ctx,
+		smolEscSeq,
+		beat.RngStep(0, 1, 10),
+	)
+
+	stdColor(ctx,
+		smolEscSeq,
+		beat.RngStep(0, 1, 10),
+		thesecond.SmallRing,
+		opt.SeqOrdinal(evt.Blue, evt.White),
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		fx.InstantTransit,
+		evt.OBeatDistStep(0.04),
+	)
+
+	stdColor(ctx,
+		smolEscSeq,
+		beat.RngStep(0, 1, 10),
+		thesecond.BigRing,
+		opt.SeqOrdinal(evt.White, evt.Red),
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		fx.InstantTransit,
+		evt.OBeatDistStep(0.04),
+	)
+
+	stdColor(ctx,
+		smolEscSeq,
+		beat.RngStep(0, 1, 10),
+		thesecond.Runway,
+		evt.Red,
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		fx.InstantTransit,
+		evt.OBeatDistStep(0.04),
+	)
+
+	// 174, 175, 176, 177
+	fusawashiSeq := beat.Seq(486, 487, 488, 489)
+
+	smolReduction(ctx,
+		fusawashiSeq,
+		beat.RngStep(0, 0.31, 2),
+	)
+
+	ctx.WSeq(fusawashiSeq, func(ctx context.Context) {
+		rng := opt.IfSeqLast(
+			beat.RngStep(0, 2.2, 10),
+			beat.RngStep(0, 0.8, 10),
+		)(ctx)
+		col := opt.IfSeqLast(
+			evt.Red,
+			opt.SeqOrdinal(evt.Blue, evt.White)(ctx),
+		)(ctx)
+		bri := opt.IfSeqLast(
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			fx.OBrightness(0.0, 1.0, 1.2, 0, ease.InCirc),
+		)(ctx)
+		stdColor(ctx,
+			beat.Seq(0),
+			rng,
+			thesecond.SmallRing,
+			col, bri,
+			fx.InstantTransit,
+		)
+	})
+
+	stdColor(ctx,
+		fusawashiSeq,
+		beat.RngStep(0, 1, 10),
+		thesecond.BigRing,
+		evt.OStepAndOffsetFilter(0, 1, evt.OReverse(true)),
+		opt.SeqOrdinal(evt.White, evt.Red),
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		fx.InstantTransit,
+		evt.OBeatDistStep(0.04),
+	)
+
+	stdColor(ctx,
+		fusawashiSeq,
+		beat.RngStep(0, 1, 10),
+		thesecond.Runway,
+		evt.OStepAndOffsetFilter(0, 1, evt.OReverse(true)),
+		evt.Red,
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		fx.InstantTransit,
+		evt.OBeatDistStep(0.04),
+	)
+	// 179, 180, 181, 182
+	horobiSeq := beat.Seq(491, 492, 493)
+	stdColor(ctx,
+		horobiSeq,
+		beat.RngStep(0, 0.8, 3),
+		thesecond.Runway,
+		//evt.OBeatDistWave(1.0),
+		evt.OSectionFilter(0, 0, evt.OReverse(true)),
+		evt.Blue,
+		opt.Ordinal(evt.Blue, evt.White, evt.Blue),
+		opt.Ordinal(evt.OBrightness(0), evt.OBrightness(0.2), evt.OBrightness(0.1)),
+		fx.ExtendTransit,
+		//fx.OBrightness(0, 0.5, 0, 0.4, ease.InOutQuad),
+		//fx.OBrightness(0.5, 1, 0.4, 0, ease.InOutQuad),
+	)
+
+	// 182, 183, 184, 185,
+	// 186, 187, 188, 189
+	cRng := beat.RngStep(0, 1.2, 2)
+	incantation(ctx,
+		beat.Seq(494),
+		cRng,
+		beat.RngStep(0, 6.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersLeftTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(495),
+		cRng,
+		beat.RngStep(0, 5.5, 30),
+		opt.Ordinal(evt.Red, evt.Blue),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersRightTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(496),
+		cRng,
+		beat.RngStep(0, 4.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersLeftBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(497),
+		cRng,
+		beat.RngStep(0, 3.5, 30),
+		opt.Ordinal(evt.Blue, evt.Red),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersRightBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(498),
+		cRng,
+		beat.RngStep(0, 2.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.BottomLasersLeftBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(499),
+		cRng,
+		beat.RngStep(0, 1.5, 30),
+		opt.Ordinal(evt.Red, evt.Blue),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.BottomLasersRightBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(500),
+		cRng,
+		beat.RngStep(0, 0.5, 30),
+		opt.Ordinal(evt.White, evt.Red),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.BottomLasersTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(0.4), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+
+	ctx.WSeq(beat.Seq(501), func(ctx context.Context) {
+		_, cb := evt.ColorGroupWithBox(ctx, thesecond.TopLasers, thesecond.BottomLasers)
+		//_, rcb := evt.ColorGroupWithBox(ctx, thesecond.SmallRing, evt.OBeatDistWave(0.6))
+		ctx.WRng(beat.RngStep(0, 0.4, 2), func(ctx context.Context) {
+			cb.AddEvent(ctx,
+				opt.Ordinal(evt.Red, evt.White),
+				opt.Ordinal(evt.OBrightness(3.6), evt.OBrightness(0)),
+				fx.InstantTransit,
+			)
+			//rcb.AddEvent(ctx,
+			//	opt.Ordinal(evt.Red, evt.White),
+			//	opt.Ordinal(evt.OBrightness(3.6), evt.OBrightness(0)),
+			//	fx.InstantTransit,
+			//)
+		})
+
+		_, rb1 := evt.RotationGroupWithBox(ctx, thesecond.TopLasersTop, thesecond.BottomLasersBottom)
+		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
+			rb1.AddEvent(ctx, evt.Transition, evt.ORotation(180))
+		})
+		_, rb2 := evt.RotationGroupWithBox(ctx, thesecond.TopLasersBottom, thesecond.BottomLasersTop)
+		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
+			rb2.AddEvent(ctx, evt.Transition, evt.ORotation(0))
+		})
+	})
+
+	fx.Off(ctx, 501, thesecond.Runway)
+}
+
+func Chorus4(ctx context.Context) {
+	//jinseiSeq := beat.Seq(504, 506, 508)
+	// 318
+	starfield(ctx,
+		beat.SeqInterval(510, 510+16, 0.25),
+		beat.RngStep(0.0, 1.5, 10),
+		beat.RngStep(0.3, 1.8, 10),
+		0.6,
+		evt.OBeatDistWave(8),
+	)
+	starfieldSpin(ctx, 510, 510+16)
+
+	ctx.WSeq(beat.Seq(504, 505, 506), func(ctx context.Context) {
+		light := opt.SeqOrdinal(thesecond.SpotlightLeft, thesecond.SpotlightRight)(ctx)
+		spotlightGhost(ctx,
+			beat.Seq(0),
+			beat.RngStep(0, 1.6, 4),
+			beat.RngStep(0, 2.4, 10),
+			20, -20, 0, -45,
+			light,
+			fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
+			fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
+			opt.Ordinal(evt.Red, evt.Red, evt.White, evt.White),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			evt.CCW,
+		)
+	})
+	cRng := beat.RngStep(0, 1.2, 2)
+	incantation(ctx,
+		beat.Seq(504),
+		cRng,
+		beat.RngStep(0, 6.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersLeftTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(506),
+		cRng,
+		beat.RngStep(0, 5.5, 30),
+		opt.Ordinal(evt.Red, evt.Blue),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersRightTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(508),
+		cRng,
+		beat.RngStep(0, 4.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersLeftBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+
+	escSeq := beat.Seq(510, 518, 526, 528)
+	smolEscalation(ctx,
+		escSeq,
+		beat.RngStep(0, 1, 10),
+	)
+	// 534, 536, 538, 540
+	stdColor(ctx,
+		escSeq,
+		beat.RngStep(0, 1, 10),
+		thesecond.SmallRing,
+		opt.SeqOrdinal(evt.Blue, evt.White),
+		opt.IfSeqFirst[evt.ColorEventOption](
+			fx.OBrightness(0.0, 1.0, 2.4, 0, ease.OutCirc),
+			opt.Combine(
+				fx.OBrightness(0.0, 0.5, 0, 3.2, ease.OutCirc),
+				fx.OBrightness(0.5, 1.0, 3.2, 0, ease.OutCirc),
+			),
+		),
+		fx.InstantTransit,
+		evt.OBeatDistStep(0.04),
+	)
+
+	ctx.WSeq(beat.Seq(510, 518), func(ctx context.Context) {
+		spotlightGhost(ctx,
+			beat.Seq(0),
+			beat.RngStep(0, 1.6, 4),
+			beat.RngStep(0, 2.4, 10),
+			20, -20, 0, -45,
+			thesecond.Spotlight,
+			fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
+			fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
+			opt.Ordinal(evt.Red, evt.Red, evt.White, evt.White),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			evt.CCW,
+		)
+	})
+
+	ctx.WSeq(beat.Seq(534, 536, 538, 540), func(ctx context.Context) {
+		spotlightGhost(ctx,
+			beat.Seq(0),
+			beat.RngStep(0, 1.6, 4),
+			beat.RngStep(0, 2.4, 10),
+			20, -20, 0, -45,
+			thesecond.Spotlight,
+			fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
+			fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
+			opt.Ordinal(evt.Red, evt.Red, evt.White, evt.White),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			evt.CCW,
+		)
+	})
+
+	ctx.WSeq(beat.Seq(542, 544, 546, 548), func(ctx context.Context) {
+		spotlightGhost(ctx,
+			beat.Seq(0),
+			beat.RngStep(0, 1.6, 4),
+			beat.RngStep(0, 2.4, 10),
+			20, -20, 0, -45,
+			thesecond.Spotlight,
+			fx.OBrightness(0.0, 0.5, 0, 2.4, ease.InOutCirc),
+			fx.OBrightness(0.5, 1.0, 2.4, 0, ease.InOutCirc),
+			opt.Ordinal(evt.Red, evt.Red, evt.White, evt.White),
+			opt.ColorBoxOnly(evt.OBeatDistWave(1.9)),
+			opt.RotationBoxOnly(evt.OBeatDistWave(1.4)),
+			evt.CCW,
+		)
+	})
+
+	incantation(ctx,
+		beat.Seq(558),
+		cRng,
+		beat.RngStep(0, 6.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersLeftTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(559),
+		cRng,
+		beat.RngStep(0, 5.5, 30),
+		opt.Ordinal(evt.Red, evt.Blue),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersRightTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(64)),
+		fx.ORotation(0, 1, 0, 31, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(560),
+		cRng,
+		beat.RngStep(0, 4.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersLeftBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(561),
+		cRng,
+		beat.RngStep(0, 3.5, 30),
+		opt.Ordinal(evt.Blue, evt.Red),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.TopLasersRightBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(562),
+		cRng,
+		beat.RngStep(0, 2.5, 30),
+		opt.Ordinal(evt.Red, evt.White),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.BottomLasersLeftBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(563),
+		cRng,
+		beat.RngStep(0, 1.5, 30),
+		opt.Ordinal(evt.Red, evt.Blue),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.BottomLasersRightBottom,
+		opt.RotationBoxOnly(evt.OBeatDistWave(1), evt.ODistWave(121)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+	incantation(ctx,
+		beat.Seq(564),
+		cRng,
+		beat.RngStep(0, 0.5, 30),
+		opt.Ordinal(evt.White, evt.Red),
+		opt.Ordinal(evt.OBrightness(2.4), evt.OBrightness(1)),
+		thesecond.BottomLasersTop,
+		opt.RotationBoxOnly(evt.OBeatDistWave(0.4), evt.ODistWave(36)),
+		fx.ORotation(0, 1, 180, 210, ease.OutCirc),
+	)
+
+	ctx.WSeq(beat.Seq(565), func(ctx context.Context) {
+		_, cb := evt.ColorGroupWithBox(ctx, thesecond.TopLasers, thesecond.BottomLasers)
+		_, rcb := evt.ColorGroupWithBox(ctx, thesecond.SmallRing, evt.OBeatDistWave(0.6))
+		ctx.WRng(beat.RngStep(0, 0.4, 2), func(ctx context.Context) {
+			cb.AddEvent(ctx,
+				opt.Ordinal(evt.Red, evt.White),
+				opt.Ordinal(evt.OBrightness(3.6), evt.OBrightness(0)),
+				fx.InstantTransit,
+			)
+			rcb.AddEvent(ctx,
+				opt.Ordinal(evt.Red, evt.White),
+				opt.Ordinal(evt.OBrightness(3.6), evt.OBrightness(0)),
+				fx.InstantTransit,
+			)
+		})
+
+		_, rb1 := evt.RotationGroupWithBox(ctx, thesecond.TopLasersTop, thesecond.BottomLasersBottom)
+		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
+			rb1.AddEvent(ctx, evt.Transition, evt.ORotation(180))
+		})
+		_, rb2 := evt.RotationGroupWithBox(ctx, thesecond.TopLasersBottom, thesecond.BottomLasersTop)
+		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
+			rb2.AddEvent(ctx, evt.Transition, evt.ORotation(0))
+		})
+	})
+
+	fx.Off(ctx, 565, thesecond.Runway)
+}
+
+func Outro(ctx context.Context) {
+	pianoSeq := beat.Seq(574, 578, 581)
+
+	stdColor(ctx,
+		pianoSeq,
+		beat.RngStep(0, 2, 20),
+		opt.SeqOrdinal(thesecond.TopLasersLeft, thesecond.BottomLasersRightBottom, thesecond.TopLasersLeftBottom, thesecond.BottomLasersRightBottom),
+		evt.White, fx.InstantTransit,
+		evt.OBeatDistWave(1.5),
+		fx.OBrightness(0, 2, 1.1, 0, ease.OutCirc),
+	)
+
+	ctx.WSeq(beat.Seq(574), func(ctx context.Context) {
+		_, b := evt.RotationGroupWithBox(ctx,
+			thesecond.TopLasers, thesecond.BottomLasers,
+			evt.ODistWave(17), evt.OBeatDistWave(2.4))
+		ctx.WRng(beat.RngStep(0, 32, 20), func(ctx context.Context) {
+			b.AddEvent(ctx, fx.ORotation(0, 1, 17, 180, ease.OutCirc))
+		})
+	})
+	// 585
+
+	stdColor(ctx,
+		beat.Seq(585),
+		beat.RngStep(0, 2, 20),
+		thesecond.Lasers,
+		evt.White, fx.InstantTransit,
+		evt.OBeatDistWave(1.5),
+		fx.OBrightness(0, 2, 1.1, 0, ease.OutCirc),
 	)
 }

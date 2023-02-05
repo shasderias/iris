@@ -59,13 +59,24 @@ func NewCurve(values ...float64) Curve {
 	return Curve{points}
 }
 
-func RotReset(ctx context.Context, b float64, options ...any) {
-	ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
-		grp := evt.RotationGroup(ctx, opt.Of[evt.RotationEventGroupOption](options...)...)
-		box := grp.AddBox(ctx, opt.Of[evt.RotationEventBoxOption](options...)...)
+func RotHold(ctx context.Context, b float64, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
+			_, b := evt.RotationGroupWithBox(ctx)
+			ctx.WRng(beat.Rng1(0), func(ctx context.Context) {
+				b.AddEvent(ctx, evt.Extend)
+			})
+		})
+	})
+}
 
-		ctx.WRng(beat.RngStep(0, 1, 1), func(ctx context.Context) {
-			box.AddEvent(ctx, opt.Of[evt.RotationEventOption](options...)...)
+func RotReset(ctx context.Context, b float64, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
+			_, b := evt.RotationGroupWithBox(ctx)
+			ctx.WRng(beat.Rng1(0), func(ctx context.Context) {
+				b.AddEvent(ctx, evt.EasingNone)
+			})
 		})
 	})
 }

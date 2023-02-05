@@ -1,6 +1,8 @@
 package opt
 
 import (
+	"math"
+
 	"github.com/shasderias/iris/context"
 	"github.com/shasderias/iris/evt"
 	"github.com/shasderias/iris/internal/calc"
@@ -69,7 +71,7 @@ func Ordinal[T any](options ...T) FuncContextOpt[T] {
 func T[T any](options ...T) FuncContextOpt[T] {
 	scaler := scale.FromUnitClamp(0, float64(len(options)-1))
 	return func(ctx context.Context) T {
-		return options[int(scaler(ctx.T()))]
+		return options[int(math.RoundToEven(scaler(ctx.T())))]
 	}
 }
 
@@ -200,4 +202,15 @@ func (c Combined) ApplyRotationEventContext(ctx context.Context, e *evt.Rotation
 			opt.ApplyRotationEvent(e)
 		}
 	}
+}
+
+func FilterAppend[T any](options []any, extra ...any) []any {
+	ret := []any{}
+	for _, opt := range options {
+		if _, ok := opt.(T); ok {
+			ret = append(ret, opt)
+		}
+	}
+	ret = append(ret, extra...)
+	return ret
 }
