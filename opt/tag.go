@@ -1,5 +1,7 @@
 package opt
 
+import "github.com/shasderias/iris/context"
+
 type KVOpt struct {
 	Key   string
 	Value any
@@ -9,7 +11,8 @@ func Set(key string, value any) KVOpt {
 	return KVOpt{key, value}
 }
 
-func Get[T any](key string, defaultValue T, options []any) T {
+func Get[T any](key string, defaultValue T, ctx context.Context, options []any) T {
+	options = append(options, ctx.Options()...)
 	v, _ := get[T](key, defaultValue, options)
 	return v
 }

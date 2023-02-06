@@ -8,6 +8,7 @@ import (
 	"github.com/shasderias/iris/evt"
 	"github.com/shasderias/iris/fx"
 	"github.com/shasderias/iris/opt"
+	"github.com/shasderias/iris/scale"
 )
 
 func spotlightGhost(ctx context.Context,
@@ -15,7 +16,7 @@ func spotlightGhost(ctx context.Context,
 	sRot, eRot, m, c float64,
 	options ...any) {
 
-	reset := opt.Get[bool]("reset", true, options)
+	reset := opt.Get[bool]("reset", true, ctx, options)
 
 	if reset {
 		fx.RotReset(ctx, seq.Beats[0]-0.1, opt.FilterAppend[evt.RotationEventGroupOption](options, evt.ORotation(sRot))...)
@@ -57,10 +58,10 @@ var (
 
 func clock(ctx context.Context, b, interval, speed, sr, er, wave float64, dir evt.RotationDirection, options ...any) {
 	var (
-		extend    = opt.Get[bool]("extend", false, options)
-		reset     = opt.Get[bool]("reset", true, options)
-		beatDist  = opt.Get[evt.RotationEventBoxOption]("beatDist", evt.OBeatDistStep(interval), options)
-		loopCount = opt.Get[int]("loop", 1, options)
+		extend    = opt.Get[bool]("extend", false, ctx, options)
+		reset     = opt.Get[bool]("reset", true, ctx, options)
+		beatDist  = opt.Get[evt.RotationEventBoxOption]("beatDist", evt.OBeatDistStep(interval), ctx, options)
+		loopCount = opt.Get[int]("loop", 1, ctx, options)
 	)
 
 	if reset {
@@ -158,12 +159,14 @@ func sideBounce(ctx context.Context, seq beat.Sequence, rng beat.Range, options 
 	})
 }
 
+func gestureEasing(e ease.Ing) opt.KVOpt { return opt.Set("easing", e) }
+
 func gesture(ctx context.Context, seq beat.Sequence, sr, er, rotWave, rotBeatWave float64, options ...any) {
 	var (
-		reset      = opt.Get[bool]("reset", true, options)
-		easing     = opt.Get[ease.Ing]("easing", ease.OutElastic, options)
-		brightness = opt.Get[evt.ColorEventOption]("brightness", fx.OBrightness(0, 1, 1.2, 0, ease.InOutCirc), options)
-		cRng       = opt.Get[beat.Range]("colorRng", beat.RngStep(0, 3.6, 7), options)
+		reset      = opt.Get[bool]("reset", true, ctx, options)
+		easing     = opt.Get[ease.Ing]("easing", ease.OutElastic, ctx, options)
+		brightness = opt.Get[evt.ColorEventOption]("brightness", fx.OBrightness(0, 1, 1.2, 0, ease.InOutCirc), ctx, options)
+		cRng       = opt.Get[beat.Range]("colorRng", beat.RngStep(0, 3.6, 7), ctx, options)
 	)
 
 	if reset {
@@ -246,13 +249,50 @@ func randFill(ctx context.Context, seq beat.Sequence, rng beat.Range, options ..
 func smolEscalation(ctx context.Context, seq beat.Sequence, rng beat.Range, options ...any) {
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(seq, func(ctx context.Context) {
-			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SmallRing, evt.OBeatDistWave(1.2), evt.ODistStep(15+30*ctx.OrdinalF()))
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SmallRing,
+				evt.OBeatDistWave(1.2),
+				evt.ODistStep(15+30*ctx.OrdinalF()),
+			)
 
 			ctx.WRng(rng, func(ctx context.Context) {
-				rb.AddEvent(ctx, fx.ORotation(0, 1, 0+ctx.SeqOrdinalF()*30, 60+ctx.SeqOrdinalF()*120, ease.OutCirc))
+				rb.AddEvent(ctx,
+					fx.ORotation(0, 1, 0+ctx.SeqOrdinalF()*30, 60+ctx.SeqOrdinalF()*120, ease.OutCirc),
+				)
 			})
+		})
+	})
+}
 
-			//evt.Basic(ctx, thesecond.RingZoom, evt.OValue(ctx.Ordinal()*5))
+func smolEscalation2(ctx context.Context, seq beat.Sequence, rng beat.Range, bdWave, rdm, rdc, srm, src, erm, erc float64, easing ease.Ing, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(seq, func(ctx context.Context) {
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SmallRing,
+				evt.OBeatDistWave(bdWave),
+				evt.ODistStep(rdm*ctx.OrdinalF()+rdc),
+			)
+
+			ctx.WRng(rng, func(ctx context.Context) {
+				rb.AddEvent(ctx,
+					fx.ORotation(0, 1, srm*ctx.SeqOrdinalF()+src, erm*ctx.SeqOrdinalF()+erc, easing),
+				)
+			})
+		})
+	})
+}
+
+func smolEscalation3(ctx context.Context, seq beat.Sequence, rng beat.Range, bdWave, rotDistStep, rotStart, rotEnd scale.Fn, easing ease.Ing, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(seq, func(ctx context.Context) {
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SmallRing,
+				evt.OBeatDistWave(bdWave(ctx.SeqT())),
+				evt.ODistStep(rotDistStep(ctx.SeqT())),
+			)
+
+			ctx.WRng(rng, func(ctx context.Context) {
+				rb.AddEvent(ctx,
+					fx.ORotation(0, 1, rotStart(ctx.SeqT()), rotEnd(ctx.SeqT()), easing),
+				)
+			})
 		})
 	})
 }
@@ -283,8 +323,24 @@ func smolReduction(ctx context.Context, seq beat.Sequence, rng beat.Range, optio
 					rb.AddEvent(ctx, evt.ORotation(0-77*ctx.SeqOrdinalF()))
 				}
 			})
+		})
+	})
+}
 
-			//evt.Basic(ctx, thesecond.RingZoom, evt.OValue((4-ctx.Ordinal())*3))
+func smolReduction2(ctx context.Context, seq beat.Sequence, rng beat.Range, beatDistWave, distStep, sr, er scale.Fn, easing ease.Ing, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(seq, func(ctx context.Context) {
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SmallRing,
+				evt.OBeatDistWave(beatDistWave(ctx.SeqT())),
+				evt.ODistStep(distStep(ctx.SeqT())),
+			)
+
+			ctx.WRng(rng, func(ctx context.Context) {
+				rb.AddEvent(ctx,
+					fx.EaseNoneLinear,
+					fx.ORotation(0, 1, sr(ctx.SeqT()), er(ctx.SeqT()), easing),
+				)
+			})
 		})
 	})
 }
@@ -304,9 +360,11 @@ func incantation(ctx context.Context, seq beat.Sequence, cRng, bRng beat.Range, 
 	})
 }
 
+func inc2ColorRange(r beat.Range) opt.KVOpt { return opt.Set("colorRange", r) }
+
 func incantation2(ctx context.Context, b float64, srr, err, sb, eb, sr, er, rotBeatDistWave, rotDistWave float64, options ...any) {
 	var (
-		colorRange = opt.Get("colorRange", beat.RngStep(0, 1.2, 2), options)
+		colorRange = opt.Get("colorRange", beat.RngStep(0, 1.2, 2), ctx, options)
 	)
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(beat.Seq(b), func(ctx context.Context) {

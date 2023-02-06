@@ -84,8 +84,14 @@ type Range struct {
 	step       float64
 }
 
+var Rng0 = Rng1(0)
+
 func Rng1(b float64) Range {
 	return RngStep(b, b, 1)
+}
+
+func Rng0To(eb float64) Range {
+	return RngStep(0, eb, 2)
 }
 
 func RngStep(start, end float64, steps float64) Range {

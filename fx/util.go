@@ -14,6 +14,7 @@ import (
 var (
 	ExtendTransit  = opt.IfFirst(evt.Extend, evt.Transition)
 	InstantTransit = opt.IfFirst(evt.Instant, evt.Transition)
+	EaseNoneLinear = opt.IfFirst(evt.EasingNone, evt.EasingLinear)
 )
 
 type Point struct {
