@@ -481,6 +481,22 @@ func sparkleFade(ctx context.Context, seq beat.Sequence, rng beat.Range, options
 	})
 }
 
+func sparkleFade2(ctx context.Context, seq beat.Sequence, rng beat.Range, b1Opts, b2Opts, b3Opts evt.ColorEventOption, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(seq, func(ctx context.Context) {
+			g := evt.ColorGroup(ctx)
+			b1 := g.AddBox(ctx, evt.OStepAndOffsetFilter(0, 3, evt.OOrder(evt.FilterOrderRandom, evt.SeedRand)))
+			b2 := g.AddBox(ctx, evt.OStepAndOffsetFilter(1, 3, evt.OOrder(evt.FilterOrderRandom, evt.SeedRand)))
+			b3 := g.AddBox(ctx, evt.OStepAndOffsetFilter(2, 3, evt.OOrder(evt.FilterOrderRandom, evt.SeedRand)))
+			ctx.WRng(rng, func(ctx context.Context) {
+				b1.AddEvent(ctx, b1Opts).Beat += 0.8
+				b2.AddEvent(ctx, b2Opts).Beat += 1.6
+				b3.AddEvent(ctx, b3Opts)
+			})
+		})
+	})
+}
+
 func sparkleFadeMotion(ctx context.Context, seq beat.Sequence, rng beat.Range, options ...any) {
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(seq, func(ctx context.Context) {
@@ -496,12 +512,50 @@ func sparkleFadeMotion(ctx context.Context, seq beat.Sequence, rng beat.Range, o
 	})
 }
 
+func spinSpawn(ctx context.Context, b, rRotBeatDistWave, rRotDistWave, rSr, rEr, rColorBeatDistWave float64, rColor, laser any, lDuration, lDistWave, lSr, lEr float64, lColor any, lEasing ease.Ing, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
+			stdRotation(ctx, beat.Seq0, beat.RngStep(0, 0.8, 10),
+				thesecond.SmallRing,
+				evt.OBeatDistWave(rRotBeatDistWave), evt.ODistWave(rRotDistWave),
+				fx.ORotation(0, 1, rSr, rEr, ease.OutCirc),
+			)
+
+			stdColor(ctx, beat.Seq0, beat.RngStep(0, 1, 3),
+				thesecond.SmallRing,
+				evt.OBeatDistWave(rColorBeatDistWave),
+				rColor,
+				opt.Ordinal(evt.OBrightness(1.2), evt.OBrightness(0.8), evt.OBrightness(0)),
+				fx.InstantTransit,
+			)
+
+			incantation(ctx, beat.Seq0,
+				beat.RngStep(0, lDuration, 2),
+				beat.RngStep(0, 8.5, 30),
+				laser, lColor,
+				fx.OBrightness(0, 1, 3.6, 0, ease.Linear),
+				opt.RotationBoxOnly(evt.OBeatDistWave(3), evt.ODistWave(lDistWave)),
+				fx.ORotation(0, 1, lSr, lEr, lEasing),
+			)
+		})
+	})
+}
+
 func darkPeak(delay, peak, peakBrightness float64, easeIn, easeOut ease.Ing) opt.Combined {
 	return opt.Combine(
 		fx.OBrightness(0.0, delay, 0, 0, easeIn),
 		fx.OBrightness(delay, peak, 0, peakBrightness, easeIn),
 		fx.OBrightness(peak, 1.0-delay, peakBrightness, 0, easeOut),
 		fx.OBrightness(1.0-delay, 1.0, 0, 0, easeOut),
+	)
+}
+
+func darkPeak2(delayIn, peak, delayOut, peakBrightness float64, easeIn, easeOut ease.Ing) opt.Combined {
+	return opt.Combine(
+		fx.OBrightness(0.0, delayIn, 0, 0, easeIn),
+		fx.OBrightness(delayIn, peak, 0, peakBrightness, easeIn),
+		fx.OBrightness(peak, 1.0-delayOut, peakBrightness, 0, easeOut),
+		fx.OBrightness(1.0-delayOut, 1.0, 0, 0, easeOut),
 	)
 }
 

@@ -127,9 +127,13 @@ func (o OptRotation) ApplyRotationEventContext(ctx context.Context, e *evt.Rotat
 
 	t := scale.ToUnitClamp(o.st, o.et)(ctx.T())
 
-	e.Rotation = math.Mod(scale.FromUnitClamp(o.sr, o.er)(o.easing.Func(t)), 360)
+	e.Rotation = mod(scale.FromUnitClamp(o.sr, o.er)(o.easing.Func(t)), 360)
 }
 
 func ORotation(st, et, sr, er float64, easing ease.Ing) evt.RotationEventOption {
 	return OptRotation{st, et, sr, er, easing}
+}
+
+func mod(x, y float64) float64 {
+	return math.Mod(math.Mod(x, y)+y, y)
 }
