@@ -1,8 +1,6 @@
 package evt
 
 import (
-	"math/rand"
-
 	"github.com/shasderias/iris/beatsaber"
 )
 
@@ -19,7 +17,9 @@ type IndexFilter struct {
 
 type indexFilterFuncOption func(*IndexFilter)
 
-func (fo indexFilterFuncOption) ApplyIndexFilter(f *IndexFilter) { fo(f) }
+func (fo indexFilterFuncOption) ApplyIndexFilter(f *IndexFilter)           { fo(f) }
+func (fo indexFilterFuncOption) ApplyColorEventBox(b *ColorEventBox)       { fo(&b.IndexFilter) }
+func (fo indexFilterFuncOption) ApplyRotationEventBox(b *RotationEventBox) { fo(&b.IndexFilter) }
 
 func OChunks(chunks int) IndexFilterOption {
 	return indexFilterFuncOption(func(f *IndexFilter) { f.Chunks = chunks })
@@ -63,7 +63,7 @@ func OStepAndOffsetFilter(offset, step int, options ...IndexFilterOption) IndexF
 	return f
 }
 
-func OReverse(reverse bool) IndexFilterOption {
+func OReverse(reverse bool) indexFilterFuncOption {
 	return indexFilterFuncOption(func(f *IndexFilter) { f.Reverse = reverse })
 }
 
@@ -106,22 +106,5 @@ func (f IndexFilter) IndexFilterV300() beatsaber.IndexFilterV300 {
 		ParamP:     f.ParamP,
 		ParamT:     f.ParamT,
 		Reverse:    boolToIntBool(f.Reverse),
-	}
-}
-
-func (f IndexFilter) IndexFilterV320() beatsaber.IndexFilterV320 {
-	if f.Seed == SeedRand {
-		f.Seed = rand.Intn(100000)
-	}
-	return beatsaber.IndexFilterV320{
-		FilterType:   int(f.IndexFilterType),
-		ParamP:       f.ParamP,
-		ParamT:       f.ParamT,
-		Reverse:      boolToIntBool(f.Reverse),
-		Chunks:       f.Chunks,
-		Order:        int(f.Order),
-		Seed:         f.Seed,
-		Limit:        f.Limit,
-		LimitAffects: int(f.LimitAffects),
 	}
 }

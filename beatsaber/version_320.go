@@ -101,7 +101,7 @@ func (d *DifficultyV320) DifficultyVersion() DifficultyVersion {
 }
 
 type LightColorEventGroupV320 struct {
-	Beat float64 `json:"-"`
+	Beat Float64 `json:"-"`
 
 	Time    Time                `json:"b"`
 	GroupID int                 `json:"g"`
@@ -111,9 +111,9 @@ type LightColorEventGroupV320 struct {
 type LightColorBoxV320 struct {
 	IndexFilter IndexFilterV320 `json:"f"`
 
-	BeatDistributionParam             float64 `json:"w"`
+	BeatDistributionParam             Float64 `json:"w"`
 	BeatDistributionType              int     `json:"d"`
-	BrightnessDistributionParam       float64 `json:"r"`
+	BrightnessDistributionParam       Float64 `json:"r"`
 	BrightnessDistributionType        int     `json:"t"`
 	BrightnessDistributionAffectFirst int     `json:"b"`
 	BrightnessDistributionEasing      int     `json:"i"` // 0 - Linear, 1 - In Quad, 2 - Out Quad,  3 - In Out Quad
@@ -122,15 +122,15 @@ type LightColorBoxV320 struct {
 }
 
 type LightColorEventV320 struct {
-	Beat                 float64 `json:"b"`
+	Beat                 Float64 `json:"b"`
 	TransitionType       int     `json:"i"`
 	EnvironmentColorType int     `json:"c"`
-	Brightness           float64 `json:"s"`
-	StrobeFrequency      float64 `json:"f"`
+	Brightness           Float64 `json:"s"`
+	StrobeFrequency      Float64 `json:"f"`
 }
 
 type LightRotationGroupV320 struct {
-	Beat float64 `json:"-"`
+	Beat Float64 `json:"-"`
 
 	Time    Time                   `json:"b"`
 	GroupID int                    `json:"g"`
@@ -140,9 +140,9 @@ type LightRotationGroupV320 struct {
 type LightRotationBoxV320 struct {
 	IndexFilter IndexFilterV320 `json:"f"`
 
-	BeatDistributionParam     float64 `json:"w"`
+	BeatDistributionParam     Float64 `json:"w"`
 	BeatDistributionType      int     `json:"d"`
-	RotationDistributionParam float64 `json:"s"`
+	RotationDistributionParam Float64 `json:"s"`
 	RotationDistributionType  int     `json:"t"`
 	Axis                      int     `json:"a"` // 0 - X, 1 - Y, 2 - Z
 	FlipRotation              int     `json:"r"`
@@ -153,11 +153,11 @@ type LightRotationBoxV320 struct {
 }
 
 type LightRotationEventV320 struct {
-	Beat                          float64 `json:"b"`
+	Beat                          Float64 `json:"b"`
 	UsePreviousEventRotationValue int     `json:"p"`
 	EaseType                      int     `json:"e"`
 	LoopsCount                    int     `json:"l"`
-	Rotation                      float64 `json:"r"`
+	Rotation                      Float64 `json:"r"`
 	RotationDirection             int     `json:"o"`
 }
 
@@ -169,17 +169,17 @@ type IndexFilterV320 struct {
 	Chunks       int     `json:"c"`
 	Order        int     `json:"n"` // 0 - in order, 2 - random order, 3 - random starting index
 	Seed         int     `json:"s"`
-	Limit        float64 `json:"l"`
+	Limit        Float64 `json:"l"`
 	LimitAffects int     `json:"d"` // 0 - no other, 1 - duration, 2 - distribution, 3 - duration and distribution
 }
 
 type BasicEventV320 struct {
-	Beat float64 `json:"-"`
+	Beat Float64 `json:"-"`
 
 	Time       Time    `json:"b"`
 	Type       int     `json:"et"`
 	Value      int     `json:"i"`
-	FloatValue float64 `json:"f"`
+	FloatValue Float64 `json:"f"`
 
 	CustomData json.RawMessage `json:"_customData,omitempty"`
 

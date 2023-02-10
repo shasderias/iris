@@ -53,7 +53,7 @@ func (g *ColorEventGroup) AddBox(ctx context.Context, options ...ColorEventBoxOp
 		},
 	}
 
-	ApplyOptions(ctx, b, getOptions(ctx, options)...)
+	ApplyOptions(ctx, b, getOptions[ColorEventBoxOption](ctx, options)...)
 
 	g.Boxes = append(g.Boxes, b)
 	return b

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/shasderias/iris/internal/imath"
 )
 
 type Map struct {
@@ -94,4 +96,10 @@ func parseDifficultyVersion(path string) (DifficultyVersion, error) {
 	}
 
 	return DifficultyVersionNil, nil
+}
+
+type Float64 float64
+
+func (f Float64) MarshalJSON() ([]byte, error) {
+	return json.Marshal(imath.Round(float64(f), 3))
 }

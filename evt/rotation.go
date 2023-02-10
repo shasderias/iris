@@ -130,6 +130,14 @@ const (
 	CCW     = RotationDirectionCounterClockwise
 )
 
+func (d *RotationDirection) Flip() {
+	if *d == CW {
+		*d = CCW
+	} else if *d == CCW {
+		*d = CW
+	}
+}
+
 func (d RotationDirection) ApplyRotationEvent(e *RotationEvent) {
 	e.Direction = d
 }

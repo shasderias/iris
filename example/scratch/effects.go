@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math/rand"
+
 	"github.com/shasderias/iris/beat"
 	"github.com/shasderias/iris/context"
 	"github.com/shasderias/iris/ease"
@@ -345,6 +347,24 @@ func smolReduction2(ctx context.Context, seq beat.Sequence, rng beat.Range, beat
 	})
 }
 
+func smolReduction3(ctx context.Context, seq beat.Sequence, rng beat.Range, beatDistWave, distStep, sr, er scale.Fn, easing ease.Ing, options ...any) {
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(seq, func(ctx context.Context) {
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SmallRing,
+				evt.OBeatDistWave(beatDistWave(ctx.SeqT())),
+				evt.ODistStep(distStep(ctx.SeqT())),
+			)
+
+			ctx.WRng(rng, func(ctx context.Context) {
+				rb.AddEvent(ctx,
+					evt.Transition,
+					fx.ORotation(0, 1, sr(ctx.SeqT()), er(ctx.SeqT()), easing),
+				)
+			})
+		})
+	})
+}
+
 func incantation(ctx context.Context, seq beat.Sequence, cRng, bRng beat.Range, options ...any) {
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(seq, func(ctx context.Context) {
@@ -394,31 +414,32 @@ func twinkleOut(ctx context.Context, seq beat.Sequence, rng beat.Range, options 
 	})
 }
 
-func starfield(ctx context.Context, seq beat.Sequence, rng1, rng2 beat.Range, peakBri float64, options ...any) {
-	bri := opt.Combine(
-		fx.OBrightness(0.0, 0.2, 0, 0, ease.OutCirc),
-		fx.OBrightness(0.2, 0.5, 0, peakBri, ease.OutCirc),
-		fx.OBrightness(0.5, 0.8, peakBri, 0, ease.InCirc),
-		fx.OBrightness(0.8, 1.0, 0, 0, ease.InCirc),
-	)
+func starfield(ctx context.Context, seq beat.Sequence, rng1, rng2 beat.Range, rot1Opt, rot2Opt evt.ColorEventOption, options ...any) {
+	//bri := opt.Combine(
+	//	fx.OBrightness(0.0, 0.2, 0, 0, ease.InOutQuad),
+	//	fx.OBrightness(0.2, 0.5, 0, peakBri, ease.InOutQuad),
+	//	fx.OBrightness(0.5, 0.8, peakBri, 0, ease.InOutQuad),
+	//	fx.OBrightness(0.8, 1.0, 0, 0, ease.InOutQuad),
+	//)
+	//bri := darkPeak2(0.1, 0.5, 0.2, peakBri, ease.InQuint, ease.OutQuad)
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(seq, func(ctx context.Context) {
 			cg := evt.ColorGroup(ctx, thesecond.BigRing)
 			cb1 := cg.AddBox(ctx,
 				evt.OStepAndOffsetFilter(0, 2, evt.OOrder(evt.FilterOrderRandom, evt.SeedRand)))
 			cb2 := cg.AddBox(ctx,
-				evt.OStepAndOffsetFilter(1, 2))
+				evt.OStepAndOffsetFilter(1, 2, evt.OOrder(evt.FilterOrderRandom, evt.SeedRand)))
 			ctx.WRng(rng1, func(ctx context.Context) {
-				cb1.AddEvent(ctx, bri, opt.SeqOrdinal(evt.White, evt.Blue))
+				cb1.AddEvent(ctx, rot1Opt, fx.InstantTransit)
 			})
 			ctx.WRng(rng2, func(ctx context.Context) {
-				cb2.AddEvent(ctx, bri, opt.SeqOrdinal(evt.Blue, evt.White))
+				cb2.AddEvent(ctx, rot2Opt, fx.InstantTransit)
 			})
 		})
 	})
 }
 
-func starfieldSpin(ctx context.Context, sb, eb float64, options ...any) {
+func starfieldSpin(ctx context.Context, sb, eb, totalRot float64, options ...any) {
 	rngEB := eb - sb
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(beat.Seq(sb), func(ctx context.Context) {
@@ -432,10 +453,10 @@ func starfieldSpin(ctx context.Context, sb, eb float64, options ...any) {
 				evt.ODistWave(171),
 			)
 			ctx.WRng(beat.RngStep(0, rngEB, 80), func(ctx context.Context) {
-				b1.AddEvent(ctx, fx.ORotation(0, 1, 31, 360*1+31, ease.InOutQuad), evt.CW)
+				b1.AddEvent(ctx, fx.ORotation(0, 1, 31, 31+totalRot, ease.Linear), evt.CW)
 			})
 			ctx.WRng(beat.RngStep(0, rngEB, 80), func(ctx context.Context) {
-				b2.AddEvent(ctx, fx.ORotation(0, 1, 360*0.5+43, 43, ease.InOutQuad), evt.CCW)
+				b2.AddEvent(ctx, fx.ORotation(0, 1, 43+(totalRot/2), 43, ease.InOutQuad), evt.CCW)
 			})
 		})
 	})
@@ -569,22 +590,154 @@ func rotHold(ctx context.Context, b float64, options ...any) {
 		})
 	})
 }
+func smartViolin(ctx context.Context, seq beat.Sequence) {
+	const left, right = 0, 1
 
-func victorySpin(ctx context.Context, b float64, options ...any) {
+	var (
+		lDir, rDir = evt.CCW, evt.CCW
+		useL, useR = true, true
+		lastSingle = left
+	)
+	ctx.WSeq(seq, func(ctx context.Context) {
+		var (
+			peakB                     float64
+			colorRange                float64
+			color                     evt.ColorEventOption
+			colorBDistWave            float64
+			sr, er                    float64
+			rotBDistWave, rotDistWave float64
+			randScale                 func(float64) float64
+		)
+		switch {
+		case ctx.SeqNextBOffset() <= 1:
+			if lastSingle == left {
+				useL, useR = false, true
+				lastSingle = right
+				rDir.Flip()
+			} else {
+				useL, useR = true, false
+				lastSingle = left
+				lDir.Flip()
+			}
+			color = opt.SeqOrdinal(
+				opt.T(evt.Red, evt.White),
+				opt.T(evt.White, evt.Red),
+				opt.T(evt.Blue, evt.White),
+				opt.T(evt.White, evt.Blue),
+			)
+			peakB = 2
+			colorRange = 0.8
+			colorBDistWave = 1.4
+			sr, er = 20, 40
+			rotBDistWave = 0.9
+			rotDistWave = 30
+			randScale = scale.FromUnitClamp(-10, 10)
+		case ctx.SeqNextBOffset() <= 2:
+			useL, useR = true, true
+			lDir.Flip()
+			rDir.Flip()
+			peakB = 2.4
+			color = opt.SeqOrdinal(
+				opt.T(evt.White, evt.Blue),
+				opt.T(evt.White, evt.Red),
+			)
+			colorRange = 1.2
+			colorBDistWave = 1.8
+			sr, er = 20, 60
+			rotBDistWave = 1.8
+			rotDistWave = 70
+			randScale = scale.FromUnitClamp(-20, 30)
+		case ctx.SeqNextBOffset() <= 4:
+			useL, useR = true, true
+			lDir.Flip()
+			rDir.Flip()
+			peakB = 3.6
+			color = opt.SeqOrdinal(
+				opt.T(evt.Red, evt.Blue),
+				opt.T(evt.Blue, evt.Red),
+			)
+			colorRange = 1.5
+			colorBDistWave = 3.5
+			sr, er = -60, 40
+			rotDistWave = 130
+			rotBDistWave = 3.5
+			randScale = scale.FromUnitClamp(-40, 40)
+		}
+
+		if useL {
+			_, cb := evt.ColorGroupWithBox(ctx, thesecond.SpotlightLeft, evt.OBeatDistWave(colorBDistWave))
+			ctx.WRng(beat.RngStep(0, colorRange, 2), func(ctx context.Context) {
+				cb.AddEvent(ctx, color, fx.OBrightness(0, 1, peakB, 0, ease.InCirc), fx.InstantTransit)
+			})
+
+			lsr, ler := sr, er
+			if lDir == evt.CCW {
+				lsr, ler = ler, lsr
+			}
+			lsr += randScale(rand.Float64())
+			ler += randScale(rand.Float64())
+
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SpotlightLeft, evt.OBeatDistWave(rotBDistWave), evt.ODistWave(rotDistWave))
+			ctx.WRng(beat.RngStep(0, ctx.SeqNextBOffset()*0.65, 10), func(ctx context.Context) {
+
+				rb.AddEvent(ctx, fx.ORotation(0, 1, lsr, ler, ease.InOutQuad))
+			})
+		}
+		if useR {
+			rsr, rer := sr, er
+			if lDir == evt.CCW {
+				rsr, rer = rer, rsr
+			}
+			rsr += randScale(rand.Float64())
+			rer += randScale(rand.Float64())
+
+			_, cb := evt.ColorGroupWithBox(ctx, thesecond.SpotlightRight, evt.OBeatDistWave(colorBDistWave))
+			ctx.WRng(beat.RngStep(0, colorRange, 2), func(ctx context.Context) {
+				cb.AddEvent(ctx, color, fx.OBrightness(0, 1, peakB, 0, ease.InCirc), fx.InstantTransit)
+			})
+			_, rb := evt.RotationGroupWithBox(ctx, thesecond.SpotlightRight, evt.OBeatDistWave(rotBDistWave), evt.ODistWave(rotDistWave))
+			ctx.WRng(beat.RngStep(0, ctx.SeqNextBOffset()*0.65, 10), func(ctx context.Context) {
+
+				rb.AddEvent(ctx, fx.ORotation(0, 1, rsr, rer, ease.InOutQuad))
+			})
+		}
+	})
+}
+func colorChangingClock(ctx context.Context, b float64, l1, l2 any,
+	cRngSeq beat.Sequence, lOpt, rOpt evt.ColorEventOption,
+	rs, sr, er, rotWave float64, dir evt.RotationDirection,
+	options ...any) {
+	lc := opt.Combine(l1, l2)
+	rotHold(ctx, b-0.1, lc)
+	ctx.WOpt(options...).Do(func(ctx context.Context) {
+		ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
+			clock(ctx, 0, 1, rs, sr, er, rotWave, dir,
+				lc)
+			_, lb := evt.ColorGroupWithBox(ctx, l1, evt.OBeatDistStep(1))
+			_, rb := evt.ColorGroupWithBox(ctx, l2, evt.OBeatDistStep(1))
+			ctx.WSeq(cRngSeq, func(ctx context.Context) {
+				lb.AddEvent(ctx, opt.IfLast(evt.Transition, evt.Instant), lOpt)
+				rb.AddEvent(ctx, opt.IfLast(evt.Transition, evt.Instant), rOpt)
+			})
+		})
+	})
+	rotHold(ctx, b+6.9, lc)
+}
+
+func victorySpin(ctx context.Context, b, sr, er, cRng, cBDistWave float64, options ...any) {
 	options = append(options, thesecond.SmallRing)
 	ctx.WOpt(options...).Do(func(ctx context.Context) {
 		ctx.WSeq(beat.Seq(b), func(ctx context.Context) {
-			_, cb := evt.ColorGroupWithBox(ctx, evt.OBeatDistWave(3))
-			ctx.WRng(beat.RngStep(0, 1, 10), func(ctx context.Context) {
-				cb.AddEvent(ctx,
-					opt.T(evt.Red, evt.White, evt.White),
-					fx.OBrightness(0, 1, 2.4, 0, ease.InCirc),
-				)
+			_, cb := evt.ColorGroupWithBox(ctx,
+				evt.OBeatDistWave(cBDistWave),
+			)
+			ctx.WRng(beat.RngStep(0, cRng, 30), func(ctx context.Context) {
+				cb.AddEvent(ctx)
 			})
 
 			_, rb := evt.RotationGroupWithBox(ctx, evt.OBeatDistWave(12), evt.ODistWave(720))
 			ctx.WRng(beat.RngStep(0, 8, 30), func(ctx context.Context) {
-				rb.AddEvent(ctx, fx.ORotation(0, 1, 0, 1440, ease.OutCirc))
+				rb.AddEvent(ctx, fx.ORotation(0, 1, sr, er, ease.OutCirc))
 			})
 		})
 	})

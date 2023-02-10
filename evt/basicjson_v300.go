@@ -13,9 +13,9 @@ func (e *BasicEvent) BasicEventV300() []beatsaber.BasicEventV300 {
 
 func (e *BasicEvent) BasicEventV320() []beatsaber.BasicEventV320 {
 	return []beatsaber.BasicEventV320{{
-		Beat:       e.Beat,
+		Beat:       beatsaber.Float64(e.Beat),
 		Type:       e.Type,
 		Value:      e.Value,
-		FloatValue: e.FloatValue,
+		FloatValue: beatsaber.Float64(e.FloatValue),
 	}}
 }
